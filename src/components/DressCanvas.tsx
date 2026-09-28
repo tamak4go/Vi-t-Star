@@ -29,7 +29,7 @@ interface DressCanvasProps {
 
 interface RecoloredLayerProps {
   item: WardrobeItem;
-  targetHex?: string;
+  customHex?: string;
   brightness?: number;
   zIndex: number;
   isVisible: boolean;
@@ -37,7 +37,7 @@ interface RecoloredLayerProps {
 
 const RecoloredLayer: React.FC<RecoloredLayerProps> = ({
   item,
-  targetHex,
+  customHex,
   brightness = 0,
   zIndex,
   isVisible,
@@ -47,8 +47,13 @@ const RecoloredLayer: React.FC<RecoloredLayerProps> = ({
   useEffect(() => {
     let isCancelled = false;
 
-    if (item.recolorable && targetHex) {
-      recolorGarment(item.src, { targetHex, brightness })
+    // CHỈ recolor khi người dùng CÓ NHU CẦU (chọn màu mới qua customHex hoặc chỉnh độ sáng khác 0)
+    // Mặc định: Giữ nguyên 100% màu sắc và chi tiết sắc nét nguyên bản của ảnh PNG
+    if (item.recolorable && (customHex || brightness !== 0)) {
+      recolorGarment(item.src, {
+        targetHex: customHex || item.defaultColor || '#AE3022',
+        brightness,
+      })
         .then((dataUrl) => {
           if (!isCancelled) {
             setCurrentSrc(dataUrl);
@@ -67,7 +72,7 @@ const RecoloredLayer: React.FC<RecoloredLayerProps> = ({
     return () => {
       isCancelled = true;
     };
-  }, [item.src, item.recolorable, targetHex, brightness]);
+  }, [item.src, item.recolorable, item.defaultColor, customHex, brightness]);
 
   return (
     <img
@@ -175,15 +180,6 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
             <span className="text-[8px] tracking-tighter uppercase font-semibold">Bảo Chứng</span>
           </div>
 
-          {/* Dynastic Subtitle Placard (Bottom Right) */}
-          <div className="absolute bottom-3 right-3 z-50 pointer-events-none px-2.5 py-1 rounded bg-primary/85 backdrop-blur-sm text-surface flex items-center gap-1 shadow-sm border border-tertiary-fixed/30">
-            <span className="material-symbols-outlined text-[14px] text-tertiary-fixed-dim">
-              history_edu
-            </span>
-            <span className="text-[11px] font-medium tracking-wide">
-              Đồng Bằng Bắc Bộ · TK XIX
-            </span>
-          </div>
 
           {/* Zoom & Pan Layer Container */}
           <div
@@ -207,7 +203,7 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
               if (!item) return null;
 
               const isVisible = Boolean(layerVisibility[category]);
-              const targetHex = colorState[item.id] || item.defaultColor;
+              const customHex = colorState[item.id];
               const brightness = brightnessState[item.id] || 0;
               const zIndex = LAYER_MAP[category];
 
@@ -215,7 +211,7 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
                 <RecoloredLayer
                   key={`${item.id}-${category}`}
                   item={item}
-                  targetHex={targetHex}
+                  customHex={customHex}
                   brightness={brightness}
                   zIndex={zIndex}
                   isVisible={isVisible}

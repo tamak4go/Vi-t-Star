@@ -21,7 +21,7 @@ interface WardrobePanelProps {
   onApplyPreset: (presetName: string) => void;
 }
 
-type TabFilter = 'all' | 'outerTop' | 'innerTop' | 'bottom' | 'belt' | 'headwear' | 'shoes';
+type TabFilter = 'all' | 'outerTop' | 'innerTop' | 'bottom' | 'belt' | 'accessories' | 'headwear' | 'shoes';
 
 interface TabItem {
   id: TabFilter;
@@ -35,8 +35,9 @@ const TABS: TabItem[] = [
   { id: 'innerTop', label: 'Áo Trong', icon: 'layers' },
   { id: 'bottom', label: 'Váy / Quần', icon: 'dry_cleaning' },
   { id: 'belt', label: 'Nịt Lưng', icon: 'toll' },
+  { id: 'accessories', label: 'Phụ Kiện', icon: 'diamond' },
   { id: 'headwear', label: 'Mũ (Khăn)', icon: 'face' },
-  { id: 'shoes', label: 'Giày', icon: 'footprint' },
+  { id: 'shoes', label: 'Giày / Hài', icon: 'footprint' },
 ];
 
 export const WardrobePanel: React.FC<WardrobePanelProps> = ({
@@ -54,6 +55,9 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
   const displayItems = WARDROBE_ITEMS.filter((item) => {
     if (item.category === 'base') return false;
     if (activeTab === 'all') return true;
+    if (activeTab === 'accessories') {
+      return item.category === 'neckwear' || item.category === 'handheld';
+    }
     return item.category === activeTab;
   });
 
@@ -79,6 +83,13 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
         </span>
         <button
           type="button"
+          onClick={() => onApplyPreset('y2k')}
+          className="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-variant text-primary text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
+        >
+          <span className="material-symbols-outlined text-[12px] text-secondary">flare</span> Y2K Hiện Đại
+        </button>
+        <button
+          type="button"
           onClick={() => onApplyPreset('tu-than')}
           className="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-variant text-primary text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
         >
@@ -97,6 +108,15 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
           className="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-variant text-primary text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
         >
           <span className="material-symbols-outlined text-[12px] text-secondary">sunny</span> Vàng Mơ
+        </button>
+        <button
+          type="button"
+          id="btn-clear-outfit"
+          onClick={() => onApplyPreset('clear')}
+          className="px-2 py-0.5 rounded bg-rose-900/10 hover:bg-rose-900/20 text-rose-900 border border-rose-900/20 text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
+          title="Cởi hết y phục, trở về người mẫu mộc"
+        >
+          <span className="material-symbols-outlined text-[12px]">do_not_disturb_on</span> Cởi Hết
         </button>
       </div>
 

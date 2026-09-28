@@ -6,12 +6,14 @@ import { LayerInspector } from './components/LayerInspector';
 import { SnapshotModal } from './components/SnapshotModal';
 import { WardrobePanel } from './components/WardrobePanel';
 import {
+  BASE_MANNEQUIN_ITEM,
   INITIAL_BRIGHTNESS_STATE,
   INITIAL_COLOR_STATE,
   INITIAL_LAYER_STATE,
   TRADITIONAL_PALETTE,
   WARDROBE_ITEMS,
-  buildEquippedFromSet,
+  DEFAULT_EQUIPPED_OUTFIT,
+  Y2K_EQUIPPED_OUTFIT,
   type BrightnessState,
   type Category,
   type ColorState,
@@ -21,10 +23,10 @@ import {
 } from './data/dressroomConfig';
 
 export function App() {
-  // Trạng thái y phục đang mặc (mỗi category giữ tối đa 1 item)
-  const [equippedOutfit, setEquippedOutfit] = useState<EquippedOutfit>(() =>
-    buildEquippedFromSet(WARDROBE_ITEMS)
-  );
+  // Trạng thái y phục đang mặc: Khởi đầu bằng người mẫu mộc, không tự động mặc đồ
+  const [equippedOutfit, setEquippedOutfit] = useState<EquippedOutfit>({
+    base: BASE_MANNEQUIN_ITEM,
+  });
 
   // Trạng thái ẩn/hiện từng tầng y phục
   const [layerVisibility, setLayerVisibility] = useState<LayerStateMap>(INITIAL_LAYER_STATE);
@@ -124,14 +126,32 @@ export function App() {
 
   // Áp dụng bộ phối sẵn
   const handleApplyPreset = (presetName: string) => {
-    if (presetName === 'tu-than') {
-      setEquippedOutfit(buildEquippedFromSet(WARDROBE_ITEMS));
+    if (presetName === 'y2k') {
+      setEquippedOutfit({ ...Y2K_EQUIPPED_OUTFIT });
+      setLayerVisibility({
+        base: true,
+        shoes: true,
+        innerTop: true,
+        bottom: true,
+        outerTop: true,
+        belt: true,
+        neckwear: true,
+        handheld: false,
+        headwear: true,
+      });
+      setColorState(INITIAL_COLOR_STATE);
+      setBrightnessState(INITIAL_BRIGHTNESS_STATE);
+      setActiveCategory('outerTop');
+      showToast('Đã áp dụng mẫu Y2K Hiện Đại');
+    } else if (presetName === 'tu-than') {
+      setEquippedOutfit({ ...DEFAULT_EQUIPPED_OUTFIT });
       setLayerVisibility(INITIAL_LAYER_STATE);
       setColorState(INITIAL_COLOR_STATE);
       setBrightnessState(INITIAL_BRIGHTNESS_STATE);
+      setActiveCategory('outerTop');
       showToast('Đã áp dụng mẫu Tứ Thân Kinh Bắc');
     } else if (presetName === 'yem') {
-      setEquippedOutfit(buildEquippedFromSet(WARDROBE_ITEMS));
+      setEquippedOutfit({ ...DEFAULT_EQUIPPED_OUTFIT });
       setLayerVisibility({
         base: true,
         shoes: true,
@@ -141,19 +161,21 @@ export function App() {
         belt: true,
         neckwear: true,
         headwear: false,
-        handheld: false,
+        handheld: true,
       });
       setActiveCategory('innerTop');
       showToast('Đã áp dụng mẫu Yếm Dạo Hội');
     } else if (presetName === 'vang-mo') {
-      setEquippedOutfit(buildEquippedFromSet(WARDROBE_ITEMS));
+      setEquippedOutfit({ ...DEFAULT_EQUIPPED_OUTFIT });
       setLayerVisibility(INITIAL_LAYER_STATE);
       setColorState({
-        'yem-do': '#E3A857', // Yếm vàng mơ
-        'nit-lung': '#2F4B6E', // Dải nịt chàm lam
+        'ao-yem-do-tham': '#E3A857', // Yếm vàng mơ
+        'nit-lung-luc-tham': '#2F4B6E', // Dải nịt chàm lam
       });
       setActiveCategory('innerTop');
       showToast('Đã áp dụng bộ phối Sắc Vàng Mơ & Chàm Lam');
+    } else if (presetName === 'clear') {
+      handleResetStage();
     }
   };
 
@@ -172,15 +194,15 @@ export function App() {
     showToast('Đã tạo diện mạo phối sắc ngẫu nhiên!');
   };
 
-  // Đặt lại toàn bộ sàn thử
+  // Đặt lại toàn bộ sàn thử (Cởi hết trang phục, về người mẫu mộc)
   const handleResetStage = () => {
-    setEquippedOutfit(buildEquippedFromSet(WARDROBE_ITEMS));
+    setEquippedOutfit({ base: BASE_MANNEQUIN_ITEM });
     setLayerVisibility(INITIAL_LAYER_STATE);
     setColorState(INITIAL_COLOR_STATE);
     setBrightnessState(INITIAL_BRIGHTNESS_STATE);
     setIsComparing(false);
     setZoom(1.0);
-    showToast('Đã đặt lại sàn thử đồ về mặc định');
+    showToast('Đã cởi hết y phục, trở về người mẫu mộc');
   };
 
   // Đếm số lượng món đang mặc
