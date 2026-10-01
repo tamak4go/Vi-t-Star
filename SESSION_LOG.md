@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã nâng cấp Rule 0 tối cao (bắt buộc kiểm thử 100% thực tế trước khi bàn giao), sửa triệt để lỗi kết nối API khi deploy (bổ sung Vercel Serverless Functions tại `api/stitch/*`, bypass rewrite HTML, tính năng Ping đo độ trễ & nhập Key UI an toàn, thư viện di sản fallback). Kiểm thử E2E 4/4 test pass 100%.
+> **Trạng thái hiện tại**: Đã fix toàn bộ API (Serverless functions Vercel, proxy, ping 1ms, hybrid key, fallback), đã kiểm thử E2E 100% pass và ĐÃ PUSH LÊN GITHUB REMOTE (`origin/main`, commit `bd49942`). Working tree hoàn toàn sạch (clean).
 
 ---
 
