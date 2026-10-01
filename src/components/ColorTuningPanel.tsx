@@ -45,10 +45,9 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
     );
   }
 
-  const userChosenColor = colorState[currentItem.id];
-  const currentColor = userChosenColor || currentItem.defaultColor || '#AE3022';
+  const currentColor = colorState[currentItem.id] || currentItem.defaultColor || '#AE3022';
   const currentBrightness = brightnessState[currentItem.id] || 0;
-  const isCustomized = Boolean(userChosenColor || currentBrightness !== 0);
+  const isCustomized = Boolean(colorState[currentItem.id] && colorState[currentItem.id] !== currentItem.defaultColor);
 
   return (
     <div
@@ -63,29 +62,12 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
             Bảng Sắc Phục Cổ
           </h3>
         </div>
-        <div className="flex items-center gap-1.5">
-          {isCustomized ? (
-            <span
-              id="recolor-status-badge"
-              className="text-[9px] bg-secondary/15 text-secondary border border-secondary/30 px-2 py-0.5 rounded-full font-medium"
-            >
-              Đã tùy biến màu
-            </span>
-          ) : (
-            <span
-              id="recolor-status-badge"
-              className="text-[9px] bg-emerald-700/10 text-emerald-800 border border-emerald-700/20 px-2 py-0.5 rounded-full font-medium"
-            >
-              Màu gốc mặc định
-            </span>
-          )}
-          <span
-            id="active-color-layer-name"
-            className="text-[10px] bg-secondary text-on-secondary px-2 py-0.5 rounded-full font-medium"
-          >
-            {currentItem.name} (Tầng {zIndex})
-          </span>
-        </div>
+        <span
+          id="active-color-layer-name"
+          className="text-[10px] bg-secondary text-on-secondary px-2 py-0.5 rounded-full font-medium"
+        >
+          {currentItem.name} (Tầng {zIndex})
+        </span>
       </div>
 
       {currentItem.recolorable ? (
@@ -97,9 +79,7 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
             </span>
             <div className="grid grid-cols-2 gap-1.5 pt-1">
               {TRADITIONAL_PALETTE.map((item) => {
-                const isSelected = Boolean(
-                  userChosenColor && userChosenColor.toUpperCase() === item.hex.toUpperCase()
-                );
+                const isSelected = currentColor.toUpperCase() === item.hex.toUpperCase();
                 return (
                   <button
                     key={item.hex}

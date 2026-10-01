@@ -1,32 +1,36 @@
 // src/App.tsx
 import { useRef, useState } from 'react';
+import { AIStylistModal } from './components/AIStylistModal';
 import { ColorTuningPanel } from './components/ColorTuningPanel';
 import { DressCanvas } from './components/DressCanvas';
 import { LayerInspector } from './components/LayerInspector';
 import { SnapshotModal } from './components/SnapshotModal';
 import { WardrobePanel } from './components/WardrobePanel';
+import { checkCulturalEtiquette } from './services/aiStylistService';
 import {
   BASE_MANNEQUIN_ITEM,
   INITIAL_BRIGHTNESS_STATE,
   INITIAL_COLOR_STATE,
   INITIAL_LAYER_STATE,
+  OUTFIT_PRESETS,
+  REFERENCE_FULL_SAMPLE,
   TRADITIONAL_PALETTE,
   WARDROBE_ITEMS,
-  DEFAULT_EQUIPPED_OUTFIT,
-  Y2K_EQUIPPED_OUTFIT,
+  buildEquippedFromPreset,
   type BrightnessState,
   type Category,
   type ColorState,
   type EquippedOutfit,
   type LayerStateMap,
+  type OutfitPreset,
   type WardrobeItem,
 } from './data/dressroomConfig';
 
 export function App() {
-  // Trạng thái y phục đang mặc: Khởi đầu bằng người mẫu mộc, không tự động mặc đồ
-  const [equippedOutfit, setEquippedOutfit] = useState<EquippedOutfit>({
-    base: BASE_MANNEQUIN_ITEM,
-  });
+  // Trạng thái y phục đang mặc (mỗi category giữ tối đa 1 item)
+  const [equippedOutfit, setEquippedOutfit] = useState<EquippedOutfit>(() =>
+    buildEquippedFromPreset('sample1')
+  );
 
   // Trạng thái ẩn/hiện từng tầng y phục
   const [layerVisibility, setLayerVisibility] = useState<LayerStateMap>(INITIAL_LAYER_STATE);
@@ -44,6 +48,8 @@ export function App() {
   const [isComparing, setIsComparing] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
+  const [isAIStylistOpen, setIsAIStylistOpen] = useState(false);
+  const [mobileTab, setMobileTab] = useState<'wardrobe' | 'color' | 'layers'>('wardrobe');
   const [toast, setToast] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -126,57 +132,31 @@ export function App() {
 
   // Áp dụng bộ phối sẵn
   const handleApplyPreset = (presetName: string) => {
-    if (presetName === 'y2k') {
-      setEquippedOutfit({ ...Y2K_EQUIPPED_OUTFIT });
-      setLayerVisibility({
-        base: true,
-        shoes: true,
-        innerTop: true,
-        bottom: true,
-        outerTop: true,
-        belt: true,
-        neckwear: true,
-        handheld: false,
-        headwear: true,
-      });
+    if (presetName === 'clear') {
+      setEquippedOutfit({ base: BASE_MANNEQUIN_ITEM });
       setColorState(INITIAL_COLOR_STATE);
       setBrightnessState(INITIAL_BRIGHTNESS_STATE);
-      setActiveCategory('outerTop');
-      showToast('Đã áp dụng mẫu Y2K Hiện Đại');
-    } else if (presetName === 'tu-than') {
-      setEquippedOutfit({ ...DEFAULT_EQUIPPED_OUTFIT });
-      setLayerVisibility(INITIAL_LAYER_STATE);
-      setColorState(INITIAL_COLOR_STATE);
-      setBrightnessState(INITIAL_BRIGHTNESS_STATE);
-      setActiveCategory('outerTop');
-      showToast('Đã áp dụng mẫu Tứ Thân Kinh Bắc');
-    } else if (presetName === 'yem') {
-      setEquippedOutfit({ ...DEFAULT_EQUIPPED_OUTFIT });
-      setLayerVisibility({
-        base: true,
-        shoes: true,
-        innerTop: true,
-        bottom: true,
-        outerTop: false, // cởi áo ngoài để lộ áo yếm
-        belt: true,
-        neckwear: true,
-        headwear: false,
-        handheld: true,
-      });
-      setActiveCategory('innerTop');
-      showToast('Đã áp dụng mẫu Yếm Dạo Hội');
-    } else if (presetName === 'vang-mo') {
-      setEquippedOutfit({ ...DEFAULT_EQUIPPED_OUTFIT });
-      setLayerVisibility(INITIAL_LAYER_STATE);
-      setColorState({
-        'ao-yem-do-tham': '#E3A857', // Yếm vàng mơ
-        'nit-lung-luc-tham': '#2F4B6E', // Dải nịt chàm lam
-      });
-      setActiveCategory('innerTop');
-      showToast('Đã áp dụng bộ phối Sắc Vàng Mơ & Chàm Lam');
-    } else if (presetName === 'clear') {
-      handleResetStage();
+      showToast('Đã cởi hết y phục, trở về người mẫu mộc');
+      return;
     }
+
+    const preset = OUTFIT_PRESETS.find((p) => p.id === presetName);
+    if (preset) {
+      setEquippedOutfit(buildEquippedFromPreset(preset.id));
+      setLayerVisibility(INITIAL_LAYER_STATE);
+      setColorState(INITIAL_COLOR_STATE);
+      setBrightnessState(INITIAL_BRIGHTNESS_STATE);
+      showToast(`Đã áp dụng: ${preset.name}`);
+    }
+  };
+
+  // Áp dụng bộ phối kèm màu đề xuất từ Cố vấn AI
+  const handleApplyPresetWithColors = (preset: OutfitPreset, customColors: Record<string, string>) => {
+    setEquippedOutfit(buildEquippedFromPreset(preset.id));
+    setLayerVisibility(INITIAL_LAYER_STATE);
+    setColorState(customColors || INITIAL_COLOR_STATE);
+    setBrightnessState(INITIAL_BRIGHTNESS_STATE);
+    showToast(`✨ Đã áp dụng: ${preset.name}!`);
   };
 
   // Phối ngẫu nhiên màu cho các trang phục vải trơn (recolorable)
@@ -194,15 +174,51 @@ export function App() {
     showToast('Đã tạo diện mạo phối sắc ngẫu nhiên!');
   };
 
-  // Đặt lại toàn bộ sàn thử (Cởi hết trang phục, về người mẫu mộc)
+  // Đặt lại toàn bộ sàn thử
   const handleResetStage = () => {
-    setEquippedOutfit({ base: BASE_MANNEQUIN_ITEM });
+    setEquippedOutfit(buildEquippedFromPreset('sample1'));
     setLayerVisibility(INITIAL_LAYER_STATE);
     setColorState(INITIAL_COLOR_STATE);
     setBrightnessState(INITIAL_BRIGHTNESS_STATE);
     setIsComparing(false);
     setZoom(1.0);
-    showToast('Đã cởi hết y phục, trở về người mẫu mộc');
+    showToast('Đã đặt lại sàn thử đồ về mặc định');
+  };
+
+  // Tự động nhận diện giày cao gót để đổi phom chân kiễng chuẩn 1:1, không lòi ngón chân trần
+  const isHighHeels =
+    equippedOutfit.shoes?.id.includes('sample9') ||
+    equippedOutfit.shoes?.id.includes('sample10');
+  const baseSrc = isHighHeels ? '/assets/base/naked_heels.png' : BASE_MANNEQUIN_ITEM.src;
+
+  // Tự động nhận diện bộ phục trang đang mặc để cập nhật ảnh mẫu gốc đối chiếu 1:1
+  const currentSetId =
+    Object.values(equippedOutfit).find((it) => it && it.setId && it.setId !== 'base')?.setId || 'sample1';
+  const currentPreset = OUTFIT_PRESETS.find((p) => p.setId === currentSetId) || OUTFIT_PRESETS[0];
+  const referenceSrc = currentPreset?.referenceImg || REFERENCE_FULL_SAMPLE;
+
+  // Kiểm tra thuần phong mỹ tục: Cổ phục Việt Nam không được thiếu hạ y (quần/váy)
+  const culturalCheck = checkCulturalEtiquette(equippedOutfit, layerVisibility);
+
+  // Mặc nhanh hạ y (quần/váy) phù hợp để đảm bảo thuần phong mỹ tục
+  const handleAutoEquipModestBottom = () => {
+    const bottomToEquip =
+      culturalCheck.suggestedBottomItem ||
+      WARDROBE_ITEMS.find((it) => it.id === 'sample1-vay') ||
+      WARDROBE_ITEMS.find((it) => it.category === 'bottom');
+
+    if (bottomToEquip) {
+      setEquippedOutfit((prev) => ({
+        ...prev,
+        bottom: bottomToEquip,
+      }));
+      setLayerVisibility((prev) => ({
+        ...prev,
+        bottom: true,
+      }));
+      setActiveCategory('bottom');
+      showToast(`✨ Đã mặc bổ sung: ${bottomToEquip.name} chuẩn thuần phong mỹ tục!`);
+    }
   };
 
   // Đếm số lượng món đang mặc
@@ -212,28 +228,28 @@ export function App() {
 
   return (
     <div className="bg-background text-on-surface font-body-md text-body-md min-h-screen selection:bg-secondary-fixed selection:text-on-secondary-fixed">
-      {/* Fixed Top Header */}
+      {/* Fixed Top Header - Compact & Responsive for Mobile and Desktop */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-primary text-on-primary shadow-[0_4px_20px_rgba(4,21,46,0.25)]">
-        <div className="h-14 w-full px-4 md:px-6 flex items-center justify-between gap-3">
+        <div className="h-13 sm:h-14 w-full px-2.5 sm:px-4 md:px-6 flex items-center justify-between gap-1.5 sm:gap-3">
           {/* Logo & Brand */}
-          <div className="flex items-center gap-space-lg shrink-0">
-            <div className="flex items-center gap-space-sm">
-              <div className="w-9 h-9 rounded bg-[#2a261c] text-tertiary-fixed-dim border border-tertiary-fixed/30 flex items-center justify-center shadow-[inset_0_0_8px_rgba(238,193,75,0.2)]">
-                <span className="material-symbols-outlined text-[22px] text-tertiary-fixed-dim">
+          <div className="flex items-center gap-2 sm:gap-space-md shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded bg-[#2a261c] text-tertiary-fixed-dim border border-tertiary-fixed/30 flex items-center justify-center shadow-[inset_0_0_8px_rgba(238,193,75,0.2)]">
+                <span className="material-symbols-outlined text-[19px] sm:text-[22px] text-tertiary-fixed-dim">
                   spa
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="font-headline-sm text-headline-sm text-surface tracking-wider font-semibold uppercase">
+                <span className="font-headline-sm text-xs sm:text-headline-sm text-surface tracking-wider font-semibold uppercase leading-tight">
                   Việt Phục Các
                 </span>
-                <span className="font-label-sm text-[10px] text-outline-variant tracking-widest uppercase">
-                  Studio Thử Đồ Tự Do · Nhuộm Vải HSL
+                <span className="font-label-sm text-[8.5px] sm:text-[10px] text-outline-variant tracking-widest uppercase hidden xs:inline leading-tight">
+                  Studio Thử Đồ Tự Do · HSL
                 </span>
               </div>
             </div>
 
-            {/* Nav links */}
+            {/* Nav links (Desktop only) */}
             <nav className="hidden md:flex items-center gap-1 ml-space-md">
               <a
                 className="px-space-md py-1.5 rounded-lg bg-surface-tint/30 text-white font-label-md font-semibold flex items-center gap-1.5 transition-colors"
@@ -257,15 +273,15 @@ export function App() {
             </nav>
           </div>
 
-          {/* Quick Header Actions */}
-          <div className="flex items-center gap-space-sm shrink-0">
+          {/* Quick Header Actions - Icon-first on Mobile */}
+          <div className="flex items-center gap-1 sm:gap-space-sm shrink-0">
             <button
               type="button"
               onClick={handleRandomize}
-              className="h-9 px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1.5 text-label-sm font-medium shadow-sm"
+              className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1 text-label-sm font-medium shadow-sm cursor-pointer"
               title="Phối ngẫu nhiên màu truyền thống"
             >
-              <span className="material-symbols-outlined text-[18px]">casino</span>
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">casino</span>
               <span className="hidden xl:inline">Ngẫu Nhiên</span>
             </button>
 
@@ -273,72 +289,149 @@ export function App() {
               id="header-reset-btn"
               type="button"
               onClick={handleResetStage}
-              className="h-9 px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1.5 text-label-sm font-medium shadow-sm"
+              className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1 text-label-sm font-medium shadow-sm cursor-pointer"
               title="Đặt Lại Ban Đầu"
             >
-              <span className="material-symbols-outlined text-[18px]">restart_alt</span>
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">restart_alt</span>
               <span className="hidden xl:inline">Đặt Lại</span>
+            </button>
+
+            <button
+              id="header-ai-stylist-btn"
+              type="button"
+              onClick={() => setIsAIStylistOpen(true)}
+              className="h-8 sm:h-9 px-2 sm:px-space-md rounded-lg bg-gradient-to-r from-[#b93829] to-[#c59b27] text-white hover:opacity-95 shadow-[0_2px_12px_rgba(185,56,41,0.35)] transition-all flex items-center gap-1 font-label-sm font-semibold cursor-pointer"
+              title="Cố Vấn Phối Đồ AI & Studio Poster Stitch"
+            >
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">auto_awesome</span>
+              <span className="hidden sm:inline">Cố Vấn AI</span>
+              <span className="sm:hidden text-[11px] font-bold">AI</span>
             </button>
 
             <button
               type="button"
               onClick={() => setIsSnapshotOpen(true)}
-              className="h-9 px-space-md rounded-lg bg-secondary text-on-secondary hover:bg-on-secondary-container hover:text-on-secondary shadow-[0_2px_10px_rgba(174,48,34,0.35)] transition-all flex items-center gap-1.5 font-label-sm font-semibold cursor-pointer"
+              className="h-8 sm:h-9 px-2 sm:px-space-md rounded-lg bg-secondary text-on-secondary hover:bg-on-secondary-container hover:text-on-secondary shadow-[0_2px_10px_rgba(174,48,34,0.35)] transition-all flex items-center gap-1 font-label-sm font-semibold cursor-pointer"
               title="Xuất Chứng Thư & Chụp Ảnh"
             >
-              <span className="material-symbols-outlined text-[18px]">photo_camera</span>
-              <span>Xuất Ảnh</span>
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">photo_camera</span>
+              <span className="hidden xs:inline text-[11px] sm:text-xs">Xuất Ảnh</span>
             </button>
           </div>
         </div>
       </header>
 
       {/* Main Container */}
-      <main className="w-full pt-14 pb-2 bg-surface min-h-[calc(100vh-40px)]">
+      <main className="w-full pt-13 sm:pt-14 pb-2 bg-surface min-h-[calc(100vh-40px)]">
         <div className="flex flex-col w-full">
-          <div className="w-full px-3 md:px-5 py-2">
-            {/* Top Studio Context Bar */}
-            <div className="w-full bg-surface-container-low rounded-lg px-3 py-1.5 mb-2.5 flex flex-wrap items-center justify-between gap-2 shadow-xs border border-outline-variant/20">
-              <div className="flex items-center gap-2 text-secondary">
+          <div className="w-full px-2 sm:px-4 md:px-5 py-1.5 sm:py-2">
+            {/* Top Studio Context Bar - Responsive One-Line or Compact Two-Lines */}
+            <div className="w-full bg-surface-container-low rounded-lg px-2.5 sm:px-3 py-1 sm:py-1.5 mb-2 flex items-center justify-between gap-1.5 shadow-2xs border border-outline-variant/20 text-xs">
+              <div className="flex items-center gap-1.5 text-secondary truncate">
                 <span
-                  className="material-symbols-outlined text-[18px]"
+                  className="material-symbols-outlined text-[16px] shrink-0"
                   style={{ fontVariationSettings: '"FILL" 1' }}
                 >
                   palette
                 </span>
-                <span className="text-[13px] text-primary tracking-wide font-semibold">
-                  Xưởng Giả Lập Phục Chế Cổ Phục · Bắc Bộ
+                <span className="text-[11px] sm:text-[13px] text-primary tracking-wide font-semibold truncate">
+                  Xưởng Cổ Phục Bắc Bộ
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5 bg-surface-container-highest px-2.5 py-0.5 rounded-full text-[10px] text-on-surface-variant font-medium">
+              <div className="flex items-center gap-1.5 shrink-0">
+                {culturalCheck.isMissingBottom && (
+                  <button
+                    type="button"
+                    onClick={handleAutoEquipModestBottom}
+                    className="flex items-center gap-1 bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100 px-2 py-0.5 rounded-full text-[9.5px] sm:text-[10px] font-semibold cursor-pointer animate-pulse transition-all shadow-2xs"
+                    title={culturalCheck.warningMessage}
+                  >
+                    <span className="material-symbols-outlined text-[13px] text-rose-600">warning</span>
+                    <span className="hidden sm:inline">Thiếu hạ y:</span>
+                    <span className="underline font-bold">Mặc quần</span>
+                  </button>
+                )}
+                <div className="hidden sm:flex items-center gap-1.5 bg-surface-container-highest px-2 py-0.5 rounded-full text-[10px] text-on-surface-variant font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                  <span>Canvas HSL Shading (Bảo Toàn Bóng Vải)</span>
+                  <span>HSL Shading</span>
                 </div>
-                <div className="bg-primary text-on-primary px-2.5 py-0.5 rounded text-[10px] font-semibold">
-                  <span id="equipped-badge">Đang mặc: {activeCount} món</span>
+                <div className="bg-primary text-on-primary px-2 py-0.5 rounded text-[10px] font-semibold">
+                  <span id="equipped-badge">{activeCount} món</span>
                 </div>
               </div>
             </div>
 
-            {/* 3-Column Interactive Atelier Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
-              {/* LEFT COLUMN: Tủ Đồ (lg:col-span-3 xl:col-span-3) */}
-              <div className="lg:col-span-3 xl:col-span-3">
+            {/* MOBILE ONLY SEGMENTED CONTROLLER (< lg screens) */}
+            <div className="lg:hidden flex items-center justify-between gap-1 p-1 bg-surface-container-low rounded-xl border border-outline-variant/30 mb-2 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setMobileTab('wardrobe')}
+                className={`flex-1 py-1.5 px-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                  mobileTab === 'wardrobe'
+                    ? 'bg-primary text-on-primary shadow-xs'
+                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">checkroom</span>
+                <span>Tủ Đồ</span>
+                {culturalCheck.isMissingBottom && (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title="Thiếu hạ y" />
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMobileTab('color')}
+                className={`flex-1 py-1.5 px-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                  mobileTab === 'color'
+                    ? 'bg-primary text-on-primary shadow-xs'
+                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">palette</span>
+                <span>Nhuộm Màu</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setMobileTab('layers')}
+                className={`flex-1 py-1.5 px-1.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                  mobileTab === 'layers'
+                    ? 'bg-primary text-on-primary shadow-xs'
+                    : 'text-on-surface-variant hover:text-primary hover:bg-surface-container'
+                }`}
+              >
+                <span className="material-symbols-outlined text-[16px]">layers</span>
+                <span>Tầng Lớp</span>
+              </button>
+            </div>
+
+            {/* ADAPTIVE WORKSPACE: Mobile Studio View vs Desktop 3-Column Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 items-start">
+              {/* DESKTOP: LEFT COLUMN (3 cols) | MOBILE: Shows when mobileTab === 'wardrobe' */}
+              <div className={`lg:col-span-3 lg:order-1 ${mobileTab === 'wardrobe' ? 'order-2' : 'hidden lg:block'}`}>
                 <WardrobePanel
                   equippedOutfit={equippedOutfit}
                   layerVisibility={layerVisibility}
                   colorState={colorState}
                   activeCategory={activeCategory}
                   onToggleEquipItem={handleToggleEquipItem}
-                  onSelectColorLayer={(cat) => setActiveCategory(cat)}
+                  onSelectColorLayer={(cat) => {
+                    setActiveCategory(cat);
+                    // Trên mobile tự động trỏ sang tab chỉnh màu
+                    if (window.innerWidth < 1024) {
+                      setMobileTab('color');
+                    }
+                  }}
                   onApplyPreset={handleApplyPreset}
+                  onOpenAIStylist={() => setIsAIStylistOpen(true)}
+                  isMissingBottom={culturalCheck.isMissingBottom}
                 />
               </div>
 
-              {/* CENTER COLUMN: Sàn Thử Đồ Trung Tâm (lg:col-span-6 xl:col-span-6) */}
-              <div className="lg:col-span-6 xl:col-span-6 flex justify-center">
+              {/* CENTER COLUMN: Sàn Thử Đồ (Desktop 6 cols | Mobile: Luôn hiển thị ở trên cùng order-1) */}
+              <div className="lg:col-span-6 lg:order-2 order-1 flex justify-center w-full">
                 <DressCanvas
                   equippedOutfit={equippedOutfit}
                   layerVisibility={layerVisibility}
@@ -351,29 +444,42 @@ export function App() {
                   onZoomOut={() => setZoom((prev) => Math.max(prev - 0.15, 0.8))}
                   onResetStage={handleResetStage}
                   canvasRef={canvasRef}
+                  referenceSrc={referenceSrc}
+                  baseSrc={baseSrc}
+                  isMissingBottom={culturalCheck.isMissingBottom}
+                  culturalWarningMsg={culturalCheck.warningMessage}
+                  onAutoEquipModestBottom={handleAutoEquipModestBottom}
                 />
               </div>
 
-              {/* RIGHT COLUMN: Layer Inspector & Color Studio (lg:col-span-3 xl:col-span-3) */}
-              <div className="lg:col-span-3 xl:col-span-3 flex flex-col gap-2 max-h-[calc(100vh-125px)] overflow-y-auto no-scrollbar pr-1">
-                <LayerInspector
-                  equippedOutfit={equippedOutfit}
-                  layerVisibility={layerVisibility}
-                  colorState={colorState}
-                  activeColorLayer={activeCategory}
-                  onToggleLayer={handleToggleLayer}
-                  onSelectColorLayer={(category) => setActiveCategory(category)}
-                />
+              {/* DESKTOP: RIGHT COLUMN (3 cols) | MOBILE: Shows based on mobileTab */}
+              <div className={`lg:col-span-3 lg:order-3 order-3 flex flex-col gap-2 max-h-[calc(100vh-125px)] overflow-y-auto no-scrollbar pr-1 ${
+                mobileTab === 'color' || mobileTab === 'layers' ? 'block' : 'hidden lg:flex'
+              }`}>
+                {/* Layer Inspector (Hiện khi chọn tab layers trên mobile hoặc luôn hiện trên desktop) */}
+                <div className={`${mobileTab === 'layers' ? 'block' : 'hidden lg:block'}`}>
+                  <LayerInspector
+                    equippedOutfit={equippedOutfit}
+                    layerVisibility={layerVisibility}
+                    colorState={colorState}
+                    activeColorLayer={activeCategory}
+                    onToggleLayer={handleToggleLayer}
+                    onSelectColorLayer={(category) => setActiveCategory(category)}
+                  />
+                </div>
 
-                <ColorTuningPanel
-                  activeCategory={activeCategory}
-                  equippedOutfit={equippedOutfit}
-                  colorState={colorState}
-                  brightnessState={brightnessState}
-                  onChangeColor={handleChangeColor}
-                  onChangeBrightness={handleChangeBrightness}
-                  onResetLayerColor={handleResetColor}
-                />
+                {/* Color Studio (Hiện khi chọn tab color trên mobile hoặc luôn hiện trên desktop) */}
+                <div className={`${mobileTab === 'color' ? 'block' : 'hidden lg:block'}`}>
+                  <ColorTuningPanel
+                    activeCategory={activeCategory}
+                    equippedOutfit={equippedOutfit}
+                    colorState={colorState}
+                    brightnessState={brightnessState}
+                    onChangeColor={handleChangeColor}
+                    onChangeBrightness={handleChangeBrightness}
+                    onResetLayerColor={handleResetColor}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -398,6 +504,19 @@ export function App() {
         isOpen={isSnapshotOpen}
         onClose={() => setIsSnapshotOpen(false)}
         canvasRef={canvasRef}
+        isMissingBottom={culturalCheck.isMissingBottom}
+        outfitName={currentPreset?.name || "Cổ Phục Đại Việt"}
+        onAutoEquipModestBottom={handleAutoEquipModestBottom}
+      />
+
+      {/* AI Stylist & Stitch Poster Modal */}
+      <AIStylistModal
+        isOpen={isAIStylistOpen}
+        onClose={() => setIsAIStylistOpen(false)}
+        equippedOutfit={equippedOutfit}
+        colorState={colorState}
+        onApplyPresetWithColors={handleApplyPresetWithColors}
+        showToast={showToast}
       />
 
       {/* Toast Notification */}

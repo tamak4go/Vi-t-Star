@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import {
   CATEGORY_LABELS,
   LAYER_MAP,
+  OUTFIT_PRESETS,
   WARDROBE_ITEMS,
   type Category,
   type ColorState,
@@ -19,9 +20,11 @@ interface WardrobePanelProps {
   onToggleEquipItem: (item: WardrobeItem) => void;
   onSelectColorLayer: (category: Category) => void;
   onApplyPreset: (presetName: string) => void;
+  onOpenAIStylist?: () => void;
+  isMissingBottom?: boolean;
 }
 
-type TabFilter = 'all' | 'outerTop' | 'innerTop' | 'bottom' | 'belt' | 'accessories' | 'headwear' | 'shoes';
+type TabFilter = 'all' | 'outerTop' | 'innerTop' | 'bottom' | 'belt' | 'headwear' | 'shoes' | 'accessories';
 
 interface TabItem {
   id: TabFilter;
@@ -33,11 +36,11 @@ const TABS: TabItem[] = [
   { id: 'all', label: 'Tất Cả', icon: 'grid_view' },
   { id: 'outerTop', label: 'Áo Ngoài', icon: 'checkroom' },
   { id: 'innerTop', label: 'Áo Trong', icon: 'layers' },
-  { id: 'bottom', label: 'Váy / Quần', icon: 'dry_cleaning' },
+  { id: 'bottom', label: 'Quần / Váy', icon: 'dry_cleaning' },
   { id: 'belt', label: 'Nịt Lưng', icon: 'toll' },
+  { id: 'headwear', label: 'Mũ / Khăn Đội', icon: 'face' },
+  { id: 'shoes', label: 'Giày', icon: 'footprint' },
   { id: 'accessories', label: 'Phụ Kiện', icon: 'diamond' },
-  { id: 'headwear', label: 'Mũ (Khăn)', icon: 'face' },
-  { id: 'shoes', label: 'Giày / Hài', icon: 'footprint' },
 ];
 
 export const WardrobePanel: React.FC<WardrobePanelProps> = ({
@@ -48,6 +51,8 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
   onToggleEquipItem,
   onSelectColorLayer,
   onApplyPreset,
+  onOpenAIStylist,
+  isMissingBottom,
 }) => {
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
 
@@ -76,98 +81,154 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
         </span>
       </div>
 
+      {/* AI Stylist Callout Banner */}
+      {onOpenAIStylist && (
+        <button
+          type="button"
+          onClick={onOpenAIStylist}
+          className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-[#1a2a44] via-[#2d1b1a] to-[#b93829] text-white flex items-center justify-between text-xs font-semibold shadow-xs hover:opacity-95 transition-all border border-[#c59b27]/40 cursor-pointer group"
+          title="Mở Cố Vấn Phối Đồ AI & Studio Poster Stitch"
+        >
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-md bg-[#c59b27] text-[#1a2a44] flex items-center justify-center text-[12px] font-bold shadow-xs">
+              ✨
+            </span>
+            <div className="text-left">
+              <div className="text-white text-[11.5px] font-bold leading-tight flex items-center gap-1.5">
+                Cố Vấn AI & Stitch Studio
+                <span className="text-[8.5px] px-1.5 py-0.2 rounded bg-[#b93829] text-white uppercase font-mono tracking-wider">
+                  Audition
+                </span>
+              </div>
+              <div className="text-[9.5px] text-slate-300 font-normal leading-tight">
+                Phối theo bối cảnh & Tạo Poster AI
+              </div>
+            </div>
+          </div>
+          <span className="material-symbols-outlined text-[15px] text-[#c59b27] group-hover:translate-x-0.5 transition-transform">
+            arrow_forward
+          </span>
+        </button>
+      )}
+
       {/* Preset Quick Styles Bar */}
-      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
         <span className="text-[9px] font-bold tracking-wider text-outline uppercase shrink-0">
-          MẪU SẴN:
+          MẪU SẴN ({OUTFIT_PRESETS.length}):
         </span>
-        <button
-          type="button"
-          onClick={() => onApplyPreset('y2k')}
-          className="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-variant text-primary text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[12px] text-secondary">flare</span> Y2K Hiện Đại
-        </button>
-        <button
-          type="button"
-          onClick={() => onApplyPreset('tu-than')}
-          className="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-variant text-primary text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[12px] text-secondary">spa</span> Tứ Thân
-        </button>
-        <button
-          type="button"
-          onClick={() => onApplyPreset('yem')}
-          className="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-variant text-primary text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[12px] text-secondary">local_florist</span> Áo Yếm
-        </button>
-        <button
-          type="button"
-          onClick={() => onApplyPreset('vang-mo')}
-          className="px-2 py-0.5 rounded bg-surface-container-high hover:bg-surface-variant text-primary text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
-        >
-          <span className="material-symbols-outlined text-[12px] text-secondary">sunny</span> Vàng Mơ
-        </button>
+        {OUTFIT_PRESETS.map((preset) => (
+          <button
+            key={preset.id}
+            type="button"
+            onClick={() => onApplyPreset(preset.id)}
+            className="px-2.5 py-1 rounded-md bg-surface-container-high hover:bg-surface-variant text-primary text-[10.5px] font-medium shrink-0 flex items-center gap-1.5 transition-colors border border-outline-variant/30 hover:border-secondary/40 shadow-2xs"
+            title={preset.name}
+          >
+            <span className="material-symbols-outlined text-[13px] text-secondary">{preset.icon}</span>
+            <span>{preset.shortName}</span>
+          </button>
+        ))}
         <button
           type="button"
           id="btn-clear-outfit"
           onClick={() => onApplyPreset('clear')}
-          className="px-2 py-0.5 rounded bg-rose-900/10 hover:bg-rose-900/20 text-rose-900 border border-rose-900/20 text-[10px] font-medium shrink-0 flex items-center gap-1 transition-colors"
+          className="px-2.5 py-1 rounded-md bg-rose-900/10 hover:bg-rose-900/20 text-rose-900 border border-rose-900/30 text-[10.5px] font-semibold shrink-0 flex items-center gap-1.5 transition-colors shadow-2xs"
           title="Cởi hết y phục, trở về người mẫu mộc"
         >
-          <span className="material-symbols-outlined text-[12px]">do_not_disturb_on</span> Cởi Hết
+          <span className="material-symbols-outlined text-[13px]">do_not_disturb_on</span>
+          <span>Cởi Hết</span>
         </button>
       </div>
 
-      {/* Category Tabs: Bar with Icon + Label stacked, matching reference */}
-      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1 bg-surface-container-low p-1 rounded-lg">
+      {/* Category Tabs: Grid 4x2 so all 8 tabs fit completely without cutoffs */}
+      <div className="grid grid-cols-4 gap-1 p-1 bg-surface-container-low rounded-lg">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
+          const isBottomAlert = tab.id === 'bottom' && isMissingBottom;
+          const count = WARDROBE_ITEMS.filter((item) => {
+            if (item.category === 'base') return false;
+            if (tab.id === 'all') return true;
+            if (tab.id === 'accessories') {
+              return item.category === 'neckwear' || item.category === 'handheld';
+            }
+            return item.category === tab.id;
+          }).length;
+
           return (
             <button
               key={tab.id}
               type="button"
+              id={`tab-${tab.id}`}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex flex-col items-center justify-center py-1.5 px-2 rounded-md shrink-0 transition-all min-w-[50px] ${
+              className={`flex flex-col items-center justify-center py-1.5 px-0.5 rounded-md transition-all relative cursor-pointer ${
                 isActive
-                  ? 'bg-primary text-on-primary shadow-xs'
+                  ? 'bg-primary text-on-primary shadow-xs font-semibold'
                   : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'
-              }`}
+              } ${isBottomAlert ? 'ring-1 ring-amber-500 bg-amber-50/60' : ''}`}
             >
-              <span className="material-symbols-outlined text-[16px] mb-0.5">
-                {tab.icon}
-              </span>
-              <span className="text-[9px] font-medium leading-tight whitespace-nowrap">
+              <div className="flex items-center gap-1">
+                <span className="material-symbols-outlined text-[15px]">
+                  {tab.icon}
+                </span>
+                {count > 0 && (
+                  <span
+                    className={`text-[8px] px-1 py-0.2 rounded-full font-bold leading-none ${
+                      isActive
+                        ? 'bg-secondary text-white'
+                        : 'bg-surface-container-highest text-on-surface-variant'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                )}
+              </div>
+              <span className="text-[9px] font-medium leading-tight text-center mt-0.5 whitespace-nowrap">
                 {tab.label}
               </span>
+
+              {/* Pulsing modesty alert on bottom tab if upper garment equipped without pants */}
+              {isBottomAlert && (
+                <span
+                  className="absolute -top-1 -right-0.5 w-3 h-3 bg-amber-500 rounded-full flex items-center justify-center text-[8px] font-black text-white shadow-xs animate-bounce"
+                  title="Đang thiếu quần/váy theo chuẩn thuần phong mỹ tục"
+                >
+                  !
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
       {/* Garment Cards Grid: 2-column large visual showcase matching reference */}
-      <div className="grid grid-cols-2 gap-2.5 max-h-[calc(100vh-250px)] overflow-y-auto no-scrollbar pr-1 pt-1">
-        {displayItems.map((item) => {
-          const isEquipped =
-            equippedOutfit[item.category]?.id === item.id &&
-            Boolean(layerVisibility[item.category]);
-          const isCurrentActive = activeCategory === item.category;
-          const currentColor = colorState[item.id] || item.defaultColor || '#AE3022';
-          const zIndex = LAYER_MAP[item.category];
+      <div className="grid grid-cols-2 gap-2.5 max-h-[calc(100vh-250px)] overflow-y-auto no-scrollbar pr-1 pt-1 min-h-[140px]">
+        {displayItems.length === 0 ? (
+          <div className="col-span-2 py-10 text-center text-outline text-[12px] flex flex-col items-center justify-center gap-2 bg-[#FAF7F0] rounded-xl border border-dashed border-outline-variant/40">
+            <span className="material-symbols-outlined text-[28px] text-outline/60">inventory_2</span>
+            <span className="font-medium text-on-surface-variant">Chưa có phục trang trong mục này</span>
+            <span className="text-[10px] text-outline">Hãy chọn tab khác hoặc xem mục Tất Cả</span>
+          </div>
+        ) : (
+          displayItems.map((item) => {
+            const isEquipped =
+              equippedOutfit[item.category]?.id === item.id &&
+              Boolean(layerVisibility[item.category]);
+            const isCurrentActive = activeCategory === item.category;
+            const currentColor = colorState[item.id] || item.defaultColor || '#AE3022';
+            const zIndex = LAYER_MAP[item.category];
 
-          return (
-            <div
-              key={item.id}
-              onClick={() => {
-                onSelectColorLayer(item.category);
-              }}
-              className={`group garment-card rounded-xl p-2 border transition-all flex flex-col justify-between bg-[#FAF7F0] ${
-                isEquipped
-                  ? 'border-[#8B281B]/40 ring-1 ring-[#8B281B]/20 shadow-xs'
-                  : 'border-[#E8E2D5] hover:border-outline-variant hover:shadow-xs'
-              } ${isCurrentActive ? 'ring-2 ring-secondary/60' : ''}`}
-            >
+            return (
+              <div
+                key={item.id}
+                onClick={() => {
+                  onSelectColorLayer(item.category);
+                }}
+                className={`group garment-card rounded-xl p-2 border transition-all flex flex-col justify-between bg-[#FAF7F0] ${
+                  isEquipped
+                    ? 'border-[#8B281B]/40 ring-1 ring-[#8B281B]/20 shadow-xs'
+                    : 'border-[#E8E2D5] hover:border-outline-variant hover:shadow-xs'
+                } ${isCurrentActive ? 'ring-2 ring-secondary/60' : ''}`}
+              >
               {/* Large Image Showcase Container */}
               <div
                 onClick={(e) => {
@@ -229,7 +290,7 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
               </button>
             </div>
           );
-        })}
+        }))}
       </div>
     </section>
   );

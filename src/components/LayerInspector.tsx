@@ -37,14 +37,10 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
             Kiểm Tra Xếp Lớp
           </h3>
         </div>
-        <span className="text-[10px] font-semibold bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded">
+        <span className="text-[10px] font-semibold bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded" title="Tầng hiển thị Z-Index">
           Z-Index
         </span>
       </div>
-
-      <p className="text-[11px] text-on-surface-variant">
-        Bấm con mắt để bóc tách từng tầng y phục.
-      </p>
 
       {/* Vertical Layer Stack */}
       <div className="flex flex-col gap-1">

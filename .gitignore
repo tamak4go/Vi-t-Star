@@ -24,6 +24,11 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
 # Temporary scratch and extraction folders
 scratch/
 temp_stitch_extract/

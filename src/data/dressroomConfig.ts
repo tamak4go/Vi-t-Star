@@ -1,5 +1,6 @@
 // src/data/dressroomConfig.ts
-// Cấu hình hệ thống layer + recolor cho Dress Room - vietstar
+// Cấu hình hệ thống layer + recolor cho Dress Room - VietStar
+// Bao gồm 11 bộ phục trang (Sample 1 Tứ Thân + 10 bộ phục trang mới từ đồ 2)
 
 // ---- 1. LayerId & Category (bước nhảy 10) ----
 
@@ -11,40 +12,39 @@ export type LayerId =
   | "outerTop"
   | "belt"
   | "neckwear"
-  | "handheld"
-  | "headwear";
+  | "headwear"
+  | "handheld";
 
 export type Category = LayerId;
 
-// Cùng mức layer 70 cho phụ kiện đeo cổ (neckwear) và đồ cầm tay (handheld)
 export const LAYER_MAP: Record<LayerId, number> = {
   base:      10,
   shoes:     20,
-  innerTop:  30,
-  bottom:    40,
+  bottom:    30,
+  innerTop:  40,
   outerTop:  50,
   belt:      60,
   neckwear:  70,
-  handheld:  70,
   headwear:  80,
+  handheld:  90,
 };
 
 // Thứ tự hiển thị layer trong panel inspector/debug (thấp -> cao)
 export const LAYER_INSPECTOR_ORDER: LayerId[] = [
-  "base", "shoes", "innerTop", "bottom", "outerTop",
-  "belt", "neckwear", "handheld", "headwear",
+  "base", "shoes", "bottom", "innerTop", "outerTop",
+  "belt", "neckwear", "headwear", "handheld",
 ];
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   base:     "Người mẫu",
-  shoes:    "Giày / Hài",
-  innerTop: "Áo trong (Yếm)",
-  bottom:   "Váy / Quần",
-  outerTop: "Áo ngoài",
-  belt:     "Nịt lưng / Corset",
-  neckwear: "Phụ kiện cổ",
-  handheld: "Đồ cầm tay",
-  headwear: "Mũ / Khăn",
+  shoes:    "Giày",
+  innerTop: "Áo Trong",
+  bottom:   "Quần / Váy",
+  outerTop: "Áo Ngoài",
+  belt:     "Nịt Lưng",
+  neckwear: "Phụ Kiện",
+  headwear: "Mũ / Khăn Đội",
+  handheld: "Phụ Kiện Cầm Tay",
 };
 
 // Thứ tự ưu tiên hiển thị các Tab trên thanh điều khiển Tủ Đồ
@@ -80,7 +80,7 @@ export const TRADITIONAL_PALETTE: TraditionalColor[] = [
 
 export const TRADITIONAL_COLORS = TRADITIONAL_PALETTE;
 
-// ---- 3. Kiểu dữ liệu item ----
+// ---- 3. Kiểu dữ liệu item & Preset ----
 
 export interface WardrobeItem {
   id: string;
@@ -92,14 +92,24 @@ export interface WardrobeItem {
   defaultColor?: string;  // hex ban đầu, dùng làm gốc tính HSL khi recolor
 }
 
+export interface OutfitPreset {
+  id: string;
+  setId: string;
+  name: string;
+  shortName: string;
+  icon: string;
+  referenceImg: string;
+  items: string[]; // item IDs
+  description?: string;
+}
+
 export type EquippedOutfit = Partial<Record<Category, WardrobeItem>>;
 
 // Màu đang áp cho từng item recolorable, key = item.id
 export type ColorState = Record<string, string>;
-
 export const INITIAL_COLOR_STATE: ColorState = {};
 
-// Reference & Mannequin model (1 model naked đồng nhất)
+// Reference & Mannequin models
 export const BASE_MANNEQUIN_ITEM: WardrobeItem = {
   id: "base-naked",
   category: "base",
@@ -109,434 +119,686 @@ export const BASE_MANNEQUIN_ITEM: WardrobeItem = {
   recolorable: false,
 };
 
-export const REFERENCE_FULL_SAMPLE = "/assets/reference/bo-mau-modern-y2k.png";
+export const BASE_MANNEQUIN_HEELS_ITEM: WardrobeItem = {
+  id: "base-naked-heels",
+  category: "base",
+  name: "Cơ thể mẫu kiễng cao gót",
+  src: "/assets/base/naked_heels.png",
+  setId: "base",
+  recolorable: false,
+};
 
-// ---- 4. Dữ liệu kho trang phục đầy đủ ----
+export const REFERENCE_FULL_SAMPLE = "/assets/reference/full-sample.png";
+
+// ---- 4. Danh sách 11 Bộ Trang Phục Phối Sẵn (Presets) ----
+
+export const OUTFIT_PRESETS: OutfitPreset[] = [
+  {
+    "id": "sample1",
+    "setId": "sample1",
+    "name": "Áo Tứ Thân Kinh Bắc",
+    "shortName": "Tứ Thân",
+    "icon": "spa",
+    "referenceImg": "/assets/reference/full-sample.png",
+    "description": "Trang phục dân gian Bắc Bộ với áo tứ thân cánh gián, yếm đỏ thắm và dải nịt ngũ sắc.",
+    "items": [
+      "sample1-giay",
+      "sample1-yem",
+      "sample1-vay",
+      "sample1-ao",
+      "sample1-nit",
+      "sample1-khan"
+    ]
+  },
+  {
+    "id": "sample2",
+    "setId": "sample2",
+    "name": "Áo Dài Sen Truyền Thống",
+    "shortName": "Áo Dài",
+    "icon": "local_florist",
+    "referenceImg": "/assets/reference/sample2_ao-dai_ref.png",
+    "description": "Áo dài truyền thống họa tiết hoa sen thanh tao kết hợp kiềng bạc và nón lá cầm tay.",
+    "items": [
+      "sample2-ao",
+      "sample2-quan",
+      "sample2-kieng",
+      "sample2-khan",
+      "sample2-non",
+      "sample2-hai"
+    ]
+  },
+  {
+    "id": "sample3",
+    "setId": "sample3",
+    "name": "Áo Bà Ba Nam Bộ",
+    "shortName": "Bà Ba",
+    "icon": "nature_people",
+    "referenceImg": "/assets/reference/sample3_ao-ba-ba_ref.png",
+    "description": "Áo bà ba hồng thắm vắt khăn rằn Nam Bộ, giỏ mây tre và hoa sứ cài tóc mộc mạc.",
+    "items": [
+      "sample3-ao",
+      "sample3-quan",
+      "sample3-hoa",
+      "sample3-gio",
+      "sample3-dep"
+    ]
+  },
+  {
+    "id": "sample4",
+    "setId": "sample4",
+    "name": "Áo Ngũ Thân Truyền Thống",
+    "shortName": "Ngũ Thân",
+    "icon": "temple_buddhist",
+    "referenceImg": "/assets/reference/sample4_ngu-than_ref.png",
+    "description": "Cổ phục ngũ thân hồng phấn đoan trang đi kèm chuỗi tràng hạt đỏ và khăn vấn cung đình.",
+    "items": [
+      "sample4-ao",
+      "sample4-quan",
+      "sample4-trang-hat",
+      "sample4-khan",
+      "sample4-hai"
+    ]
+  },
+  {
+    "id": "sample5",
+    "setId": "sample5",
+    "name": "Áo Nhật Bình Cung Đình",
+    "shortName": "Nhật Bình",
+    "icon": "crown",
+    "referenceImg": "/assets/reference/sample5_nhat-binh_ref.png",
+    "description": "Lễ phục cung đình triều Nguyễn thêu phượng hoàng kim tuyến uy nghi cùng khăn vành lam.",
+    "items": [
+      "sample5-ao",
+      "sample5-quan",
+      "sample5-khan",
+      "sample5-hai"
+    ]
+  },
+  {
+    "id": "sample6",
+    "setId": "sample6",
+    "name": "Áo Tấc Quý Tộc Triều Nguyễn",
+    "shortName": "Áo Tấc",
+    "icon": "auto_awesome",
+    "referenceImg": "/assets/reference/sample6_ao-tac_ref.png",
+    "description": "Áo tấc thụng xanh lam vương giả triều Nguyễn với khăn đóng trâm vàng quý phái.",
+    "items": [
+      "sample6-ao",
+      "sample6-quan",
+      "sample6-khan",
+      "sample6-hai"
+    ]
+  },
+  {
+    "id": "sample7",
+    "setId": "sample7",
+    "name": "Trang Phục Dân Tộc Thái",
+    "shortName": "Dân Tộc Thái",
+    "icon": "forest",
+    "referenceImg": "/assets/reference/sample7_dan-toc-thai_ref.png",
+    "description": "Áo Cóm trắng cúc bướm bạc, váy đen xẻ tà, dải nịt eo xà tích bạc và khăn Piêu thổ cẩm.",
+    "items": [
+      "sample7-ao",
+      "sample7-vay",
+      "sample7-nit",
+      "sample7-khan",
+      "sample7-dep"
+    ]
+  },
+  {
+    "id": "sample8",
+    "setId": "sample8",
+    "name": "Cổ Phục Chàm Hoa Văn Thổ Cẩm",
+    "shortName": "Chàm Thổ Cẩm",
+    "icon": "palette",
+    "referenceImg": "/assets/reference/sample8_co-phuc-cham_ref.png",
+    "description": "Trang phục truyền thống Chàm vạt chéo thổ cẩm, kiềng bạc chạm khắc và đai tua rua.",
+    "items": [
+      "sample8-ao",
+      "sample8-quan",
+      "sample8-kieng",
+      "sample8-nit",
+      "sample8-khan",
+      "sample8-sandal"
+    ]
+  },
+  {
+    "id": "sample9",
+    "setId": "sample9",
+    "name": "Thời Trang Công Sở 1 (Chân Váy Bút Chì)",
+    "shortName": "Công Sở 1",
+    "icon": "work",
+    "referenceImg": "/assets/reference/sample9_cong-so-1_ref.png",
+    "description": "Sơ mi lụa xếp ly cổ thanh lịch, chân váy bút chì nơ eo, ví clutch bạc và giày cao gót đính đá.",
+    "items": [
+      "sample9-ao",
+      "sample9-vay",
+      "sample9-bong-tai",
+      "sample9-vi",
+      "sample9-giay"
+    ]
+  },
+  {
+    "id": "sample10",
+    "setId": "sample10",
+    "name": "Thời Trang Công Sở 2 (Sơ Mi Trắng Jean)",
+    "shortName": "Công Sở 2",
+    "icon": "business_center",
+    "referenceImg": "/assets/reference/sample10_cong-so-2_ref.png",
+    "description": "Sơ mi trắng cổ bẻ V-neck phóng khoáng sơ vin cùng quần jean skinny và giày cao gót be nude.",
+    "items": [
+      "sample10-ao",
+      "sample10-quan",
+      "sample10-giay"
+    ]
+  },
+  {
+    "id": "sample11",
+    "setId": "sample11",
+    "name": "Phong Cách Y2K Hiện Đại",
+    "shortName": "Y2K Hiện Đại",
+    "icon": "headphones",
+    "referenceImg": "/assets/reference/sample11_y2k_ref.png",
+    "description": "Sweater đen sao hồng phá cách, chân váy voan xếp ly, choker da xích bạc và tai nghe headphone.",
+    "items": [
+      "sample11-ao",
+      "sample11-vay",
+      "sample11-choker",
+      "sample11-headphone",
+      "sample11-bot"
+    ]
+  }
+];
+
+// ---- 5. Danh mục toàn bộ trang phục (Wardrobe Items) ----
 
 export const WARDROBE_ITEMS: WardrobeItem[] = [
   BASE_MANNEQUIN_ITEM,
   {
-    id: "khan-mo-qua-den",
-    category: "headwear",
-    name: "Khăn mỏ quạ đen tuyền",
-    src: "/assets/headwear/khan-mo-qua-den.png",
-    setId: "ao-tu-than-kinh-bac",
+    id: "sample1-giay",
+    category: "shoes",
+    name: "Sample 1 - Hài mộc đen",
+    src: "/assets/shoes/giay.png",
+    setId: "sample1",
     recolorable: true,
-    defaultColor: "#2a2f3b",
+    defaultColor: "#2B2B2B",
   },
   {
-    id: "khan-van-lam",
-    category: "headwear",
-    name: "Khăn vấn xanh chàm lam",
-    src: "/assets/headwear/khan-van-lam.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#93abc4",
-  },
-  {
-    id: "non-quai-thao",
-    category: "headwear",
-    name: "Nón quai thao dệt mộc",
-    src: "/assets/headwear/non-quai-thao.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#5d494e",
-  },
-  {
-    id: "khan-van-hong-dao",
-    category: "headwear",
-    name: "Khăn vấn hồng đào",
-    src: "/assets/headwear/khan-van-hong-dao.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#a85469",
-  },
-  {
-    id: "tram-cai-toc-ngoc",
-    category: "headwear",
-    name: "Trâm cài tóc ngọc",
-    src: "/assets/headwear/tram-cai-toc-ngoc.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#d6d0ac",
-  },
-  {
-    id: "mu-beret-y2k",
-    category: "headwear",
-    name: "Mũ len beret Y2K xanh tím",
-    src: "/assets/headwear/mu-beret-y2k.png",
-    setId: "y2k-modern",
-    recolorable: true,
-    defaultColor: "#30396d",
-  },
-  {
-    id: "khan-dong-luc-xam",
-    category: "headwear",
-    name: "Khăn đóng lục xám mộc",
-    src: "/assets/headwear/khan-dong-luc-xam.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#757f76",
-  },
-  {
-    id: "khan-trum-y2k",
-    category: "headwear",
-    name: "Khăn trùm Y2K nâu hồng",
-    src: "/assets/headwear/khan-trum-y2k.png",
-    setId: "y2k-modern",
-    recolorable: true,
-    defaultColor: "#b49a9c",
-  },
-  {
-    id: "vong-co-choker-y2k",
-    category: "neckwear",
-    name: "Vòng cổ Choker Y2K xích bạc",
-    src: "/assets/neckwear/vong-co-choker-y2k.png",
-    setId: "y2k-modern",
-    recolorable: false,
-    defaultColor: "#9f9e9e",
-  },
-  {
-    id: "kieng-bac-co-truyen",
-    category: "neckwear",
-    name: "Kiềng bạc cổ truyền trơn",
-    src: "/assets/neckwear/kieng-bac-co-truyen.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: false,
-    defaultColor: "#9a9999",
-  },
-  {
-    id: "kieng-bac-ban-mong",
-    category: "neckwear",
-    name: "Kiềng bạc bản mỏng",
-    src: "/assets/neckwear/kieng-bac-ban-mong.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: false,
-    defaultColor: "#a9a8a7",
-  },
-  {
-    id: "quat-nan-hoa-lua",
-    category: "handheld",
-    name: "Quạt nan lụa hoa tay trái",
-    src: "/assets/handheld/quat-nan-hoa-lua.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#d5bc9c",
-  },
-  {
-    id: "phu-kien-tay-phai",
-    category: "handheld",
-    name: "Dải lụa hoa tay phải",
-    src: "/assets/handheld/phu-kien-tay-phai.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#a2825a",
-  },
-  {
-    id: "dai-lua-deo-co-tay",
-    category: "handheld",
-    name: "Dải lụa đeo cổ tay",
-    src: "/assets/handheld/dai-lua-deo-co-tay.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#a29da2",
-  },
-  {
-    id: "ao-tu-than-do-dieu",
-    category: "outerTop",
-    name: "Áo tứ thân đỏ điều",
-    src: "/assets/outerTop/ao-tu-than-do-dieu.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#be675f",
-  },
-  {
-    id: "ao-tu-than-cham-lam",
-    category: "outerTop",
-    name: "Áo tứ thân chàm lam",
-    src: "/assets/outerTop/ao-tu-than-cham-lam.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#c6d2df",
-  },
-  {
-    id: "ao-tu-than-hong-dao",
-    category: "outerTop",
-    name: "Áo tứ thân hồng đào",
-    src: "/assets/outerTop/ao-tu-than-hong-dao.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#e8cac5",
-  },
-  {
-    id: "ao-tu-than-cham-dam",
-    category: "outerTop",
-    name: "Áo tứ thân chàm sẫm",
-    src: "/assets/outerTop/ao-tu-than-cham-dam.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#263046",
-  },
-  {
-    id: "ao-dai-tu-than-sen",
-    category: "outerTop",
-    name: "Áo dài tứ thân gấm sen",
-    src: "/assets/outerTop/ao-dai-tu-than-sen.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#bc5a72",
-  },
-  {
-    id: "ao-khoac-jacket-y2k",
-    category: "outerTop",
-    name: "Áo khoác lửng Jacket Y2K",
-    src: "/assets/outerTop/ao-khoac-jacket-y2k.png",
-    setId: "y2k-modern",
-    recolorable: true,
-    defaultColor: "#4f414b",
-  },
-  {
-    id: "ao-yem-canh-sen",
+    id: "sample1-yem",
     category: "innerTop",
-    name: "Áo yếm hoa sen",
-    src: "/assets/innerTop/ao-yem-canh-sen.png",
-    setId: "ao-tu-than-kinh-bac",
+    name: "Sample 1 - Áo yếm đỏ thắm",
+    src: "/assets/inner/yem-do.png",
+    setId: "sample1",
     recolorable: true,
-    defaultColor: "#b87e7c",
+    defaultColor: "#AE3022",
   },
   {
-    id: "ao-yem-bach-ngoc",
-    category: "innerTop",
-    name: "Áo yếm bạch ngọc",
-    src: "/assets/innerTop/ao-yem-bach-ngoc.png",
-    setId: "ao-tu-than-kinh-bac",
+    id: "sample1-vay",
+    category: "bottom",
+    name: "Sample 1 - Váy đụp đen",
+    src: "/assets/bottom/vay-den.png",
+    setId: "sample1",
     recolorable: true,
-    defaultColor: "#c9c2c0",
+    defaultColor: "#2B2B2B",
   },
   {
-    id: "ao-yem-do-tham",
-    category: "innerTop",
-    name: "Áo yếm đỏ thắm",
-    src: "/assets/innerTop/ao-yem-do-tham.png",
-    setId: "ao-tu-than-kinh-bac",
+    id: "sample1-ao",
+    category: "outerTop",
+    name: "Sample 1 - Áo tứ thân",
+    src: "/assets/outer/ao-tu-than-do.png",
+    setId: "sample1",
     recolorable: true,
-    defaultColor: "#c43e8b",
+    defaultColor: "#5B3A29",
   },
   {
-    id: "ao-doi-kham-bach-ngoc",
-    category: "innerTop",
-    name: "Áo đối khâm cánh ngọc",
-    src: "/assets/innerTop/ao-doi-kham-bach-ngoc.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#d2cfcd",
-  },
-  {
-    id: "ao-croptop-y2k",
-    category: "innerTop",
-    name: "Áo croptop yếm cách tân Y2K",
-    src: "/assets/innerTop/ao-croptop-y2k.png",
-    setId: "y2k-modern",
-    recolorable: true,
-    defaultColor: "#e3dbcf",
-  },
-  {
-    id: "nit-lung-luc-tham",
+    id: "sample1-nit",
     category: "belt",
-    name: "Dải nịt lưng lục thắm",
-    src: "/assets/belt/nit-lung-luc-tham.png",
-    setId: "ao-tu-than-kinh-bac",
+    name: "Sample 1 - Dải nịt ngũ sắc",
+    src: "/assets/belt/nit-lung.png",
+    setId: "sample1",
     recolorable: true,
-    defaultColor: "#6e9574",
+    defaultColor: "#E3A857",
   },
   {
-    id: "dai-nit-eo-y2k",
+    id: "sample1-khan",
+    category: "headwear",
+    name: "Sample 1 - Khăn mỏ quạ",
+    src: "/assets/headwear/khan-mo-qua.png",
+    setId: "sample1",
+    recolorable: true,
+    defaultColor: "#1A1A1A",
+  },
+  {
+    id: "sample2-ao",
+    category: "outerTop",
+    name: "Áo Dài Sen Truyền Thống - Áo dài sen truyền thống",
+    src: "/assets/outerTop/sample2_ao-dai_ao.png",
+    setId: "sample2",
+    recolorable: false,
+    defaultColor: "#E8A0A3",
+  },
+  {
+    id: "sample2-quan",
+    category: "bottom",
+    name: "Áo Dài Sen Truyền Thống - Quần lụa trắng áo dài",
+    src: "/assets/bottom/sample2_ao-dai_quan.png",
+    setId: "sample2",
+    recolorable: true,
+    defaultColor: "#F2EFE6",
+  },
+  {
+    id: "sample2-kieng",
+    category: "neckwear",
+    name: "Áo Dài Sen Truyền Thống - Kiềng bạc cổ điển",
+    src: "/assets/neckwear/sample2_ao-dai_kieng.png",
+    setId: "sample2",
+    recolorable: false,
+    defaultColor: "#E0E0E0",
+  },
+  {
+    id: "sample2-khan",
+    category: "headwear",
+    name: "Áo Dài Sen Truyền Thống - Khăn vấn sen hồng",
+    src: "/assets/headwear/sample2_ao-dai_khan.png",
+    setId: "sample2",
+    recolorable: false,
+    defaultColor: "#E8A0A3",
+  },
+  {
+    id: "sample2-non",
+    category: "handheld",
+    name: "Áo Dài Sen Truyền Thống - Nón lá cầm tay",
+    src: "/assets/handheld/sample2_ao-dai_non.png",
+    setId: "sample2",
+    recolorable: false,
+    defaultColor: "#F5DEB3",
+  },
+  {
+    id: "sample2-hai",
+    category: "shoes",
+    name: "Áo Dài Sen Truyền Thống - Hài sen thêu hoa",
+    src: "/assets/shoes/sample2_ao-dai_hai.png",
+    setId: "sample2",
+    recolorable: false,
+    defaultColor: "#E8A0A3",
+  },
+  {
+    id: "sample3-ao",
+    category: "innerTop",
+    name: "Áo Bà Ba Nam Bộ - Áo bà ba hồng khăn rằn",
+    src: "/assets/innerTop/sample3_ao-ba-ba_ao.png",
+    setId: "sample3",
+    recolorable: false,
+    defaultColor: "#E8A0A3",
+  },
+  {
+    id: "sample3-quan",
+    category: "bottom",
+    name: "Áo Bà Ba Nam Bộ - Quần đen bà ba",
+    src: "/assets/bottom/sample3_ao-ba-ba_quan.png",
+    setId: "sample3",
+    recolorable: true,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample3-hoa",
+    category: "headwear",
+    name: "Áo Bà Ba Nam Bộ - Hoa sứ cài tóc",
+    src: "/assets/headwear/sample3_ao-ba-ba_hoa.png",
+    setId: "sample3",
+    recolorable: false,
+    defaultColor: "#FFFFFF",
+  },
+  {
+    id: "sample3-gio",
+    category: "handheld",
+    name: "Áo Bà Ba Nam Bộ - Giỏ mây Nam Bộ",
+    src: "/assets/handheld/sample3_ao-ba-ba_gio.png",
+    setId: "sample3",
+    recolorable: false,
+    defaultColor: "#D2B48C",
+  },
+  {
+    id: "sample3-dep",
+    category: "shoes",
+    name: "Áo Bà Ba Nam Bộ - Dép mộc quai nâu",
+    src: "/assets/shoes/sample3_ao-ba-ba_dep.png",
+    setId: "sample3",
+    recolorable: false,
+    defaultColor: "#5B3A29",
+  },
+  {
+    id: "sample4-ao",
+    category: "outerTop",
+    name: "Áo Ngũ Thân Truyền Thống - Áo ngũ thân hồng phấn",
+    src: "/assets/outerTop/sample4_ngu-than_ao.png",
+    setId: "sample4",
+    recolorable: true,
+    defaultColor: "#E8A0A3",
+  },
+  {
+    id: "sample4-quan",
+    category: "bottom",
+    name: "Áo Ngũ Thân Truyền Thống - Quần lụa trắng ngũ thân",
+    src: "/assets/bottom/sample4_ngu-than_quan.png",
+    setId: "sample4",
+    recolorable: true,
+    defaultColor: "#F2EFE6",
+  },
+  {
+    id: "sample4-trang-hat",
+    category: "neckwear",
+    name: "Áo Ngũ Thân Truyền Thống - Chuỗi tràng hạt đỏ",
+    src: "/assets/neckwear/sample4_ngu-than_trang-hat.png",
+    setId: "sample4",
+    recolorable: false,
+    defaultColor: "#AE3022",
+  },
+  {
+    id: "sample4-khan",
+    category: "headwear",
+    name: "Áo Ngũ Thân Truyền Thống - Khăn vấn ngũ thân",
+    src: "/assets/headwear/sample4_ngu-than_khan.png",
+    setId: "sample4",
+    recolorable: true,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample4-hai",
+    category: "shoes",
+    name: "Áo Ngũ Thân Truyền Thống - Hài cong ngũ thân",
+    src: "/assets/shoes/sample4_ngu-than_hai.png",
+    setId: "sample4",
+    recolorable: true,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample5-ao",
+    category: "outerTop",
+    name: "Áo Nhật Bình Cung Đình - Áo Nhật bình cam thêu phượng",
+    src: "/assets/outerTop/sample5_nhat-binh_ao.png",
+    setId: "sample5",
+    recolorable: false,
+    defaultColor: "#E3A857",
+  },
+  {
+    id: "sample5-quan",
+    category: "bottom",
+    name: "Áo Nhật Bình Cung Đình - Quần lụa trắng Nhật bình",
+    src: "/assets/bottom/sample5_nhat-binh_quan.png",
+    setId: "sample5",
+    recolorable: true,
+    defaultColor: "#F2EFE6",
+  },
+  {
+    id: "sample5-khan",
+    category: "headwear",
+    name: "Áo Nhật Bình Cung Đình - Khăn vành lam cung đình",
+    src: "/assets/headwear/sample5_nhat-binh_khan.png",
+    setId: "sample5",
+    recolorable: false,
+    defaultColor: "#2F4B6E",
+  },
+  {
+    id: "sample5-hai",
+    category: "shoes",
+    name: "Áo Nhật Bình Cung Đình - Hài phượng hoàng kim tuyến",
+    src: "/assets/shoes/sample5_nhat-binh_hai.png",
+    setId: "sample5",
+    recolorable: false,
+    defaultColor: "#E3A857",
+  },
+  {
+    id: "sample6-ao",
+    category: "outerTop",
+    name: "Áo Tấc Quý Tộc Triều Nguyễn - Áo tấc thụng xanh lam",
+    src: "/assets/outerTop/sample6_ao-tac_ao.png",
+    setId: "sample6",
+    recolorable: true,
+    defaultColor: "#2F4B6E",
+  },
+  {
+    id: "sample6-quan",
+    category: "bottom",
+    name: "Áo Tấc Quý Tộc Triều Nguyễn - Quần lụa trắng áo tấc",
+    src: "/assets/bottom/sample6_ao-tac_quan.png",
+    setId: "sample6",
+    recolorable: true,
+    defaultColor: "#F2EFE6",
+  },
+  {
+    id: "sample6-khan",
+    category: "headwear",
+    name: "Áo Tấc Quý Tộc Triều Nguyễn - Khăn đóng trâm vàng",
+    src: "/assets/headwear/sample6_ao-tac_khan.png",
+    setId: "sample6",
+    recolorable: false,
+    defaultColor: "#2F4B6E",
+  },
+  {
+    id: "sample6-hai",
+    category: "shoes",
+    name: "Áo Tấc Quý Tộc Triều Nguyễn - Hài nhung đen áo tấc",
+    src: "/assets/shoes/sample6_ao-tac_hai.png",
+    setId: "sample6",
+    recolorable: true,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample7-ao",
+    category: "innerTop",
+    name: "Trang Phục Dân Tộc Thái - Áo Cóm trắng cúc bướm",
+    src: "/assets/innerTop/sample7_dan-toc-thai_ao.png",
+    setId: "sample7",
+    recolorable: true,
+    defaultColor: "#F2EFE6",
+  },
+  {
+    id: "sample7-vay",
+    category: "bottom",
+    name: "Trang Phục Dân Tộc Thái - Váy đen xẻ tà Thái",
+    src: "/assets/bottom/sample7_dan-toc-thai_vay.png",
+    setId: "sample7",
+    recolorable: true,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample7-nit",
     category: "belt",
-    name: "Đai nịt eo Corset Y2K",
-    src: "/assets/belt/dai-nit-eo-y2k.png",
-    setId: "y2k-modern",
-    recolorable: true,
-    defaultColor: "#504e48",
+    name: "Trang Phục Dân Tộc Thái - Dải nịt xanh + xà tích bạc",
+    src: "/assets/belt/sample7_dan-toc-thai_nit.png",
+    setId: "sample7",
+    recolorable: false,
+    defaultColor: "#2E5339",
   },
   {
-    id: "dai-lung-vay-ngan-y2k",
+    id: "sample7-khan",
+    category: "headwear",
+    name: "Trang Phục Dân Tộc Thái - Khăn Piêu thổ cẩm Thái",
+    src: "/assets/headwear/sample7_dan-toc-thai_khan.png",
+    setId: "sample7",
+    recolorable: false,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample7-dep",
+    category: "shoes",
+    name: "Trang Phục Dân Tộc Thái - Dép be dân tộc Thái",
+    src: "/assets/shoes/sample7_dan-toc-thai_dep.png",
+    setId: "sample7",
+    recolorable: false,
+    defaultColor: "#E3A857",
+  },
+  {
+    id: "sample8-ao",
+    category: "outerTop",
+    name: "Cổ Phục Chàm Hoa Văn Thổ Cẩm - Áo chàm vạt chéo thổ cẩm",
+    src: "/assets/outerTop/sample8_co-phuc-cham_ao.png",
+    setId: "sample8",
+    recolorable: false,
+    defaultColor: "#2F4B6E",
+  },
+  {
+    id: "sample8-quan",
+    category: "bottom",
+    name: "Cổ Phục Chàm Hoa Văn Thổ Cẩm - Quần đen ống rộng Chàm",
+    src: "/assets/bottom/sample8_co-phuc-cham_quan.png",
+    setId: "sample8",
+    recolorable: true,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample8-kieng",
+    category: "neckwear",
+    name: "Cổ Phục Chàm Hoa Văn Thổ Cẩm - Kiềng bạc Chàm chạm khắc",
+    src: "/assets/neckwear/sample8_co-phuc-cham_kieng.png",
+    setId: "sample8",
+    recolorable: false,
+    defaultColor: "#E0E0E0",
+  },
+  {
+    id: "sample8-nit",
     category: "belt",
-    name: "Đai thắt lưng chân váy Y2K",
-    src: "/assets/belt/dai-lung-vay-ngan-y2k.png",
-    setId: "y2k-modern",
-    recolorable: true,
-    defaultColor: "#242425",
+    name: "Cổ Phục Chàm Hoa Văn Thổ Cẩm - Đai vải thổ cẩm tua rua",
+    src: "/assets/belt/sample8_co-phuc-cham_nit.png",
+    setId: "sample8",
+    recolorable: false,
+    defaultColor: "#AE3022",
   },
   {
-    id: "vay-dup-den-tuyen",
+    id: "sample8-khan",
+    category: "headwear",
+    name: "Cổ Phục Chàm Hoa Văn Thổ Cẩm - Khăn vấn chàm tua rua",
+    src: "/assets/headwear/sample8_co-phuc-cham_khan.png",
+    setId: "sample8",
+    recolorable: false,
+    defaultColor: "#2F4B6E",
+  },
+  {
+    id: "sample8-sandal",
+    category: "shoes",
+    name: "Cổ Phục Chàm Hoa Văn Thổ Cẩm - Sandal chiến binh Chàm",
+    src: "/assets/shoes/sample8_co-phuc-cham_sandal.png",
+    setId: "sample8",
+    recolorable: false,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample9-ao",
+    category: "innerTop",
+    name: "Công Sở 1 (Chân Váy Bút Chì) - Áo sơ mi lụa cổ xếp ly",
+    src: "/assets/innerTop/sample9_cong-so-1_ao.png",
+    setId: "sample9",
+    recolorable: true,
+    defaultColor: "#F2EFE6",
+  },
+  {
+    id: "sample9-vay",
     category: "bottom",
-    name: "Váy đụp đen tuyền",
-    src: "/assets/bottom/vay-dup-den-tuyen.png",
-    setId: "ao-tu-than-kinh-bac",
+    name: "Công Sở 1 (Chân Váy Bút Chì) - Chân váy bút chì nơ eo",
+    src: "/assets/bottom/sample9_cong-so-1_vay.png",
+    setId: "sample9",
     recolorable: true,
-    defaultColor: "#22201b",
+    defaultColor: "#2B2B2B",
   },
   {
-    id: "quan-lua-bach-ngoc",
+    id: "sample9-bong-tai",
+    category: "neckwear",
+    name: "Công Sở 1 (Chân Váy Bút Chì) - Bông tai ngọc trai",
+    src: "/assets/neckwear/sample9_cong-so-1_bong-tai.png",
+    setId: "sample9",
+    recolorable: false,
+    defaultColor: "#FFFFFF",
+  },
+  {
+    id: "sample9-vi",
+    category: "handheld",
+    name: "Công Sở 1 (Chân Váy Bút Chì) - Ví clutch bạc cầm tay",
+    src: "/assets/handheld/sample9_cong-so-1_vi.png",
+    setId: "sample9",
+    recolorable: false,
+    defaultColor: "#C0C0C0",
+  },
+  {
+    id: "sample9-giay",
+    category: "shoes",
+    name: "Công Sở 1 (Chân Váy Bút Chì) - Giày cao gót đen đính đá",
+    src: "/assets/shoes/sample9_cong-so-1_giay.png",
+    setId: "sample9",
+    recolorable: false,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample10-ao",
+    category: "innerTop",
+    name: "Công Sở 2 (Sơ Mi Trắng Jean) - Áo sơ mi trắng cổ bẻ V-neck",
+    src: "/assets/innerTop/sample10_cong-so-2_ao.png",
+    setId: "sample10",
+    recolorable: true,
+    defaultColor: "#FFFFFF",
+  },
+  {
+    id: "sample10-quan",
     category: "bottom",
-    name: "Quần lụa bạch ngọc",
-    src: "/assets/bottom/quan-lua-bach-ngoc.png",
-    setId: "ao-tu-than-kinh-bac",
+    name: "Công Sở 2 (Sơ Mi Trắng Jean) - Quần jean skinny cạp cao",
+    src: "/assets/bottom/sample10_cong-so-2_quan.png",
+    setId: "sample10",
     recolorable: true,
-    defaultColor: "#e0d7ce",
+    defaultColor: "#2F4B6E",
   },
   {
-    id: "vay-dai-cham-lam",
+    id: "sample10-giay",
+    category: "shoes",
+    name: "Công Sở 2 (Sơ Mi Trắng Jean) - Giày cao gót be nude",
+    src: "/assets/shoes/sample10_cong-so-2_giay.png",
+    setId: "sample10",
+    recolorable: false,
+    defaultColor: "#E3A857",
+  },
+  {
+    id: "sample11-ao",
+    category: "outerTop",
+    name: "Phong Cách Y2K Hiện Đại - Áo sweater đen sao hồng Y2K",
+    src: "/assets/outerTop/sample11_y2k_ao.png",
+    setId: "sample11",
+    recolorable: false,
+    defaultColor: "#2B2B2B",
+  },
+  {
+    id: "sample11-vay",
     category: "bottom",
-    name: "Váy dài chàm lam",
-    src: "/assets/bottom/vay-dai-cham-lam.png",
-    setId: "ao-tu-than-kinh-bac",
+    name: "Phong Cách Y2K Hiện Đại - Chân váy voan xếp ly hồng",
+    src: "/assets/bottom/sample11_y2k_vay.png",
+    setId: "sample11",
     recolorable: true,
-    defaultColor: "#495f77",
+    defaultColor: "#E8A0A3",
   },
   {
-    id: "quan-linh-to-nga",
-    category: "bottom",
-    name: "Quần lĩnh tơ ngà",
-    src: "/assets/bottom/quan-linh-to-nga.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#e2e2db",
+    id: "sample11-choker",
+    category: "neckwear",
+    name: "Phong Cách Y2K Hiện Đại - Vòng cổ choker da xích bạc",
+    src: "/assets/neckwear/sample11_y2k_choker.png",
+    setId: "sample11",
+    recolorable: false,
+    defaultColor: "#2B2B2B",
   },
   {
-    id: "vay-linh-den-moc",
-    category: "bottom",
-    name: "Váy lĩnh đen mộc",
-    src: "/assets/bottom/vay-linh-den-moc.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#282622",
+    id: "sample11-headphone",
+    category: "headwear",
+    name: "Phong Cách Y2K Hiện Đại - Tai nghe headphone hồng",
+    src: "/assets/headwear/sample11_y2k_headphone.png",
+    setId: "sample11",
+    recolorable: false,
+    defaultColor: "#E8A0A3",
   },
   {
-    id: "vay-gam-kem",
-    category: "bottom",
-    name: "Váy gấm màu kem",
-    src: "/assets/bottom/vay-gam-kem.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#e4dbd2",
-  },
-  {
-    id: "quan-ong-rong-trang",
-    category: "bottom",
-    name: "Quần ống rộng trắng",
-    src: "/assets/bottom/quan-ong-rong-trang.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#d6d6da",
-  },
-  {
-    id: "vay-xep-ly-to-tam",
-    category: "bottom",
-    name: "Váy xếp ly tơ tằm",
-    src: "/assets/bottom/vay-xep-ly-to-tam.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#ede7dc",
-  },
-  {
-    id: "quan-linh-den-dai",
-    category: "bottom",
-    name: "Quần lĩnh đen dài",
-    src: "/assets/bottom/quan-linh-den-dai.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#252525",
-  },
-  {
-    id: "bot-cao-co-den-y2k",
+    id: "sample11-bot",
     category: "shoes",
-    name: "Bốt cao cổ đen Y2K",
-    src: "/assets/shoes/bot-cao-co-den-y2k.png",
-    setId: "y2k-modern",
-    recolorable: true,
-    defaultColor: "#3c323b",
-  },
-  {
-    id: "hai-cong-den-tuyen",
-    category: "shoes",
-    name: "Đôi hài mũi cong đen",
-    src: "/assets/shoes/hai-cong-den-tuyen.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#343332",
-  },
-  {
-    id: "hai-gam-to-vang",
-    category: "shoes",
-    name: "Hài gấm tơ vàng",
-    src: "/assets/shoes/hai-gam-to-vang.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#c8ab94",
-  },
-  {
-    id: "hai-nhung-den-mong",
-    category: "shoes",
-    name: "Hài nhung đen mỏng",
-    src: "/assets/shoes/hai-nhung-den-mong.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#282934",
-  },
-  {
-    id: "hai-theu-hong-dao",
-    category: "shoes",
-    name: "Hài thêu nhung hồng đào",
-    src: "/assets/shoes/hai-theu-hong-dao.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#94505f",
-  },
-  {
-    id: "guoc-moc-quet-son",
-    category: "shoes",
-    name: "Guốc mộc quẹt sơn",
-    src: "/assets/shoes/guoc-moc-quet-son.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#aa8669",
-  },
-  {
-    id: "hai-gam-to-nga",
-    category: "shoes",
-    name: "Hài gấm tơ ngà",
-    src: "/assets/shoes/hai-gam-to-nga.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#b9a798",
-  },
-  {
-    id: "hai-nhung-canh-gian",
-    category: "shoes",
-    name: "Hài nhung cánh gián",
-    src: "/assets/shoes/hai-nhung-canh-gian.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#5a5755",
-  },
-  {
-    id: "hai-da-den-bong",
-    category: "shoes",
-    name: "Hài da đen bóng",
-    src: "/assets/shoes/hai-da-den-bong.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#2c2e33",
-  },
-  {
-    id: "hai-gam-to-vang-dam",
-    category: "shoes",
-    name: "Hài gấm tơ vàng sẫm",
-    src: "/assets/shoes/hai-gam-to-vang-dam.png",
-    setId: "ao-tu-than-kinh-bac",
-    recolorable: true,
-    defaultColor: "#c5a976",
+    name: "Phong Cách Y2K Hiện Đại - Bốt đen bánh mì sao hồng",
+    src: "/assets/shoes/sample11_y2k_bot.png",
+    setId: "sample11",
+    recolorable: false,
+    defaultColor: "#2B2B2B",
   },
 ];
 
@@ -550,47 +812,37 @@ export const INITIAL_LAYER_STATE: LayerStateMap = {
   outerTop:  true,
   belt:      true,
   neckwear:  true,
-  handheld:  true,
   headwear:  true,
+  handheld:  true,
 };
 
 export type BrightnessState = Record<string, number>;
 export const INITIAL_BRIGHTNESS_STATE: BrightnessState = {};
 
 // Backward compatibility types if needed
-export type CategoryFilter = "all" | "outerTop" | "innerTop" | "bottom" | "belt" | "headwear" | "shoes" | "accessories";
+export type CategoryFilter = "all" | "outerTop" | "innerTop" | "bottom" | "belt" | "headwear" | "shoes" | "acc";
 
-// ---- 5. Helpers ----
-
-export const DEFAULT_EQUIPPED_OUTFIT: EquippedOutfit = {
-  base: BASE_MANNEQUIN_ITEM,
-  outerTop: WARDROBE_ITEMS.find((it) => it.id === 'ao-tu-than-do-dieu'),
-  innerTop: WARDROBE_ITEMS.find((it) => it.id === 'ao-yem-do-tham'),
-  bottom: WARDROBE_ITEMS.find((it) => it.id === 'vay-dup-den-tuyen'),
-  belt: WARDROBE_ITEMS.find((it) => it.id === 'nit-lung-luc-tham'),
-  neckwear: WARDROBE_ITEMS.find((it) => it.id === 'kieng-bac-co-truyen'),
-  handheld: WARDROBE_ITEMS.find((it) => it.id === 'quat-nan-hoa-lua'),
-  headwear: WARDROBE_ITEMS.find((it) => it.id === 'khan-mo-qua-den'),
-  shoes: WARDROBE_ITEMS.find((it) => it.id === 'hai-cong-den-tuyen'),
-};
-
-export const Y2K_EQUIPPED_OUTFIT: EquippedOutfit = {
-  base: BASE_MANNEQUIN_ITEM,
-  outerTop: WARDROBE_ITEMS.find((it) => it.id === 'ao-khoac-jacket-y2k'),
-  innerTop: WARDROBE_ITEMS.find((it) => it.id === 'ao-croptop-y2k'),
-  bottom: WARDROBE_ITEMS.find((it) => it.id === 'dai-lung-vay-ngan-y2k') || WARDROBE_ITEMS.find((it) => it.id === 'vay-linh-den-moc'),
-  belt: WARDROBE_ITEMS.find((it) => it.id === 'dai-nit-eo-y2k'),
-  neckwear: WARDROBE_ITEMS.find((it) => it.id === 'vong-co-choker-y2k'),
-  headwear: WARDROBE_ITEMS.find((it) => it.id === 'mu-beret-y2k'),
-  shoes: WARDROBE_ITEMS.find((it) => it.id === 'bot-cao-co-den-y2k'),
-};
+// ---- 6. Helpers ----
 
 export function buildEquippedFromSet(items: WardrobeItem[]): EquippedOutfit {
-  if (items === WARDROBE_ITEMS) {
-    return { ...DEFAULT_EQUIPPED_OUTFIT };
-  }
   const equipped: EquippedOutfit = {};
   for (const item of items) equipped[item.category] = item;
+  return equipped;
+}
+
+export function buildEquippedFromPreset(presetId: string): EquippedOutfit {
+  const preset = OUTFIT_PRESETS.find((p) => p.id === presetId);
+  if (!preset) return { base: BASE_MANNEQUIN_ITEM };
+
+  const equipped: EquippedOutfit = { base: BASE_MANNEQUIN_ITEM };
+  const itemsMap = new Map(WARDROBE_ITEMS.map((it) => [it.id, it]));
+
+  for (const itemId of preset.items) {
+    const item = itemsMap.get(itemId);
+    if (item) {
+      equipped[item.category] = item;
+    }
+  }
   return equipped;
 }
 
@@ -599,4 +851,3 @@ export function sortByLayer(equipped: EquippedOutfit): WardrobeItem[] {
     .filter((item): item is WardrobeItem => Boolean(item))
     .sort((a, b) => LAYER_MAP[a.category] - LAYER_MAP[b.category]);
 }
-
