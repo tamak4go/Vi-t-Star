@@ -3,6 +3,13 @@
 import type { Plugin, ViteDevServer } from 'vite';
 import { loadEnv } from 'vite';
 import { StitchToolClient } from '@google/stitch-sdk';
+import dns from 'node:dns';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {
+  // ignore
+}
 
 let cachedClient: StitchToolClient | null = null;
 

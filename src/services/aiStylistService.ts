@@ -557,6 +557,7 @@ export function generateStitchFashionPrompt(options: StitchPromptOptions): strin
     occasionId = "tet",
     userVibe = "High Fashion Editorial",
     userGender = "female",
+    userCreativeText = "",
     backgroundPresetId = "hue_citadel",
     customBackground = "",
     backgroundSetting,
@@ -568,14 +569,20 @@ export function generateStitchFashionPrompt(options: StitchPromptOptions): strin
   // 1. Phân tích chi tiết phục trang theo nguồn mà người dùng chỉ định
   let outfitListStr = "";
   let outfitThemeName = occasion.name;
+  let customGuardrailEn = LOCKED_CULTURAL_GUARDRAIL_EN;
 
   if (outfitSourceMode === "custom") {
-    // Chế độ 3: Người dùng tự do nhập mô tả mẫu phục trang mới
+    // Chế độ 3: Người dùng tự do nhập mô tả mẫu phục trang mới (ví dụ: quần jean, áo sơ mi kỉ yếu...)
     if (customOutfitDescription && customOutfitDescription.trim()) {
-      outfitListStr = customOutfitDescription.trim();
-      outfitThemeName = "Custom Outfit Design";
+      const rawDesc = customOutfitDescription.trim();
+      outfitListStr = rawDesc;
+      outfitThemeName = "Sáng Tạo Cá Nhân";
+
+      // Khung chuẩn mực văn hóa thích ứng cho trang phục hiện đại/remix:
+      customGuardrailEn =
+        "Vietnamese Cultural Modesty & Aesthetic Standard: Elegant, stylish, and tasteful attire, graceful silhouette, decent and respectful posture (kín đáo, lịch sự, tôn trọng thuần phong mỹ tục), no indecent exposure, culturally appreciative.";
     } else {
-      outfitListStr = "Stylized contemporary Vietnamese folk fashion ensemble";
+      outfitListStr = "Stylized contemporary Vietnamese fashion ensemble";
       outfitThemeName = "Sáng Tạo Tự Do";
     }
   } else if (outfitSourceMode === "preset") {
@@ -617,37 +624,41 @@ export function generateStitchFashionPrompt(options: StitchPromptOptions): strin
       ? "Vietnamese fashion model"
       : "Vietnamese female model";
 
+  const creativeDetailStr = userCreativeText && userCreativeText.trim()
+    ? `Creative nuances & touches: ${userCreativeText.trim()}.`
+    : "";
+
   // Bản nháp nhanh: tinh gọn token, không đòi hỏi 8K render, có khóa bảo vệ văn hóa
   if (quality === "fast") {
     return `Minimalist Vietnamese fashion lookbook card draft:
-[LOCKED HERITAGE GUARDRAIL: ${LOCKED_CULTURAL_GUARDRAIL_EN}]
+[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
 Subject: A stylish ${genderTerm} (${userVibe}).
-Attire: Authentic outfit: ${outfitListStr}.
-Setting / Background: ${effectiveSetting}.
-Layout: Clean single-column mobile lookbook card, title "VIETNAM HERITAGE REMIX - ${outfitThemeName.toUpperCase()}", minimalist vector layout, streamlined web rendering.`;
+Attire: ${outfitListStr}.
+${creativeDetailStr ? `Details: ${creativeDetailStr}\n` : ""}Setting / Background: ${effectiveSetting}.
+Layout: Clean single-column mobile lookbook card, title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", minimalist vector layout, streamlined web rendering.`;
   }
 
   // Tiêu chuẩn HD: cân bằng màu sắc và ánh sáng
   if (quality === "standard") {
     return `Editorial lookbook fashion poster:
-[LOCKED HERITAGE GUARDRAIL: ${LOCKED_CULTURAL_GUARDRAIL_EN}]
+[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
 Subject: A young stylish ${genderTerm} (aesthetic: ${userVibe}) posing with elegance and poise.
-Attire: Authentic Vietnamese heritage ensemble: ${outfitListStr}.
-Theme: ${outfitThemeName} (${occasion.tagline}).
-Cultural Details: Refined traditional silk textures, authentic collar neckline, handcrafted details and harmonious color palette.
+Attire: ${outfitListStr}.
+${creativeDetailStr ? `Creative Accents: ${creativeDetailStr}\n` : ""}Theme: ${outfitThemeName} (${occasion.tagline}).
+Cultural Details: Refined textures, authentic collar neckline, handcrafted details and harmonious color palette.
 Setting / Atmosphere: ${effectiveSetting}, warm soft golden hour sunset lighting, imperial elegance and gentle atmospheric depth.
-Typography & Layout: Fashion lookbook poster with title "VIETNAM HERITAGE REMIX - ${outfitThemeName.toUpperCase()}", curated color palette swatch bar at bottom, clean HD editorial photography aesthetic.`;
+Typography & Layout: Fashion lookbook poster with title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", curated color palette swatch bar at bottom, clean HD editorial photography aesthetic.`;
   }
 
   // Siêu nét 8K: dành cho bản poster triển lãm cao cấp
   return `High-fashion full-body lookbook editorial poster:
-[LOCKED HERITAGE GUARDRAIL: ${LOCKED_CULTURAL_GUARDRAIL_EN}]
+[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
 Subject: A young stylish ${genderTerm} (aesthetic: ${userVibe}) posing gracefully in full figure.
-Attire: Authentic Vietnamese heritage masterpiece: ${outfitListStr}.
-Theme: ${outfitThemeName} (${occasion.tagline}).
+Attire: ${outfitListStr}.
+${creativeDetailStr ? `Creative Accents: ${creativeDetailStr}\n` : ""}Theme: ${outfitThemeName} (${occasion.tagline}).
 Cultural Details: Exquisite fabric textures, layered silk robes, authentic neckline collar, traditional hand-crafted embroidery details.
 Setting / Atmosphere: ${effectiveSetting}, soft cinematic sunset lighting, golden hour rim lights, subtle fog mist, dignified imperial atmosphere.
-Typography & Layout: Premium magazine poster format, archival typography layout with elegant title "VIETNAM HERITAGE REMIX - ${outfitThemeName.toUpperCase()}", curated color palette swatch bar at bottom, museum exhibition grade composition, 8k resolution fashion photography aesthetic.`;
+Typography & Layout: Premium magazine poster format, archival typography layout with elegant title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", curated color palette swatch bar at bottom, museum exhibition grade composition, 8k resolution fashion photography aesthetic.`;
 }
 
 // ---- QUY TẮC BẢO CHỨNG THUẦN PHONG MỸ TỤC BẤT DI BẤT DỊCH (LOCKED INVARIANT) ----

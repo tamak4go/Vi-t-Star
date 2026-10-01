@@ -1,6 +1,6 @@
 // src/components/AIStylistModal.tsx
 // Modal Cố Vấn Phối Đồ AI & Studio Poster Thời Trang Google Stitch
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Sparkles,
   Wand2,
@@ -85,7 +85,8 @@ export function AIStylistModal({
   const [isUserEditingPrompt, setIsUserEditingPrompt] = useState<boolean>(false);
   const [customPrompt, setCustomPrompt] = useState<string>("");
   const [userCreativeInput, setUserCreativeInput] = useState<string>("");
-  const [promptAudit, setPromptAudit] = useState<PromptAuditResult | null>(null);
+  const [isFreshlyGenerated, setIsFreshlyGenerated] = useState<boolean>(false);
+  const [freshGeneratedDescription, setFreshGeneratedDescription] = useState<string>("");
   const [showFullPromptPreview, setShowFullPromptPreview] = useState<boolean>(false);
   const [quality, setQuality] = useState<GenerationQuality>("standard");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
@@ -114,8 +115,11 @@ export function AIStylistModal({
 
   const currentQualityConfig = QUALITY_CONFIGS[quality];
 
-  // Danh sách chi tiết các món đồ đang mặc trên Canvas
-  const equippedSummaries: OutfitItemSummary[] = getEquippedOutfitSummary(equippedOutfit, colorState);
+  // Danh sách chi tiết các món đồ đang mặc trên Canvas (memoized để tránh re-render lặp vô tận)
+  const equippedSummaries: OutfitItemSummary[] = useMemo(
+    () => getEquippedOutfitSummary(equippedOutfit, colorState),
+    [equippedOutfit, colorState]
+  );
 
   // Giai đoạn xử lý thích ứng theo chất lượng (Draft hoặc Standard/Ultra)
   const getGenerationStage = (sec: number) => {
@@ -191,8 +195,8 @@ export function AIStylistModal({
     setCustomPrompt(prompt);
   };
 
-  // Tự động kiểm duyệt và thẩm định khi user nhập nội dung sáng tạo
-  useEffect(() => {
+  // Tự động kiểm duyệt và thẩm định khi user nhập nội dung sáng tạo (dùng useMemo chống re-render vô tận)
+  const promptAudit: PromptAuditResult | null = useMemo(() => {
     const outfitDesc =
       outfitSourceMode === "preset"
         ? (OUTFIT_PRESETS.find((p) => p.id === selectedPresetOutfitId)?.name || "")
@@ -200,8 +204,7 @@ export function AIStylistModal({
         ? customOutfitInput
         : equippedSummaries.map((i) => i.name).join(", ");
 
-    const audit = auditAndEnhancePrompt(userCreativeInput, outfitDesc, userVibe);
-    setPromptAudit(audit);
+    return auditAndEnhancePrompt(userCreativeInput, outfitDesc, userVibe);
   }, [userCreativeInput, outfitSourceMode, selectedPresetOutfitId, customOutfitInput, equippedSummaries, userVibe]);
 
   // Tự động đồng bộ Prompt khi người dùng đổi outfit, nguồn mẫu, bối cảnh, chất lượng hoặc creative input
@@ -363,6 +366,14 @@ export function AIStylistModal({
       const data = await res.json();
       if (data.success && data.screen) {
         setGeneratedScreen(data.screen);
+        setIsFreshlyGenerated(true);
+        const desc =
+          outfitSourceMode === "custom"
+            ? (customOutfitInput.trim() || "Mẫu tự do")
+            : outfitSourceMode === "preset"
+            ? (OUTFIT_PRESETS.find((p) => p.id === selectedPresetOutfitId)?.name || "Bộ mẫu có sẵn")
+            : "Mẫu phối trên Canvas";
+        setFreshGeneratedDescription(desc);
         showToast("🎉 Google Stitch đã hoàn tất poster thời trang!");
         fetchRecentScreens();
       } else {
@@ -979,6 +990,9 @@ export function AIStylistModal({
                           <Edit3 className="w-3 h-3 text-[#b93829]" />
                           Tự nhập mô tả mẫu phục trang mới (Tiếng Việt / English):
                         </label>
+                        <span className="text-[9.5px] font-mono text-amber-800 bg-amber-100/80 px-1.5 py-0.5 rounded border border-amber-300">
+                          Nhấn Enter để sinh ảnh
+                        </span>
                       </div>
 
                       <input
@@ -987,19 +1001,26 @@ export function AIStylistModal({
                         onChange={(e) => {
                           setCustomOutfitInput(e.target.value);
                           setIsUserEditingPrompt(false);
+                          setIsFreshlyGenerated(false);
                         }}
-                        placeholder="VD: Áo giao lĩnh thời Lê dệt chỉ vàng lấp lánh, đai ngọc bích thắt eo, kết hợp áo choàng nhung..."
-                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-amber-300 rounded-lg focus:outline-none focus:border-[#b93829] shadow-2xs text-slate-800"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !isGenerating && customOutfitInput.trim()) {
+                            e.preventDefault();
+                            handleGenerateStitchScreen();
+                          }
+                        }}
+                        placeholder="VD: Quần jean để tôi đi chụp kỉ yếu, Áo giao lĩnh thời Lê dệt chỉ vàng..."
+                        className="w-full px-2.5 py-2 text-xs bg-white border border-amber-300 rounded-lg focus:outline-none focus:border-[#b93829] shadow-inner text-slate-800 font-medium"
                       />
 
                       {/* Các gợi ý mẫu nhanh */}
                       <div className="flex items-center gap-1 flex-wrap pt-0.5">
                         <span className="text-[9.5px] text-amber-900 font-semibold">Gợi ý mẫu:</span>
                         {[
+                          "Quần jean áo trắng chụp kỉ yếu",
                           "Áo Giao Lĩnh thời Lê thêu rồng vàng",
                           "Áo Đối Khâm thời Lý Trần đài các",
                           "Áo Dài cưới hoàng gia đính ngọc trai",
-                          "Áo dài nam cách tân cổ đứng quý tộc",
                           "Cổ phục dạ hội Cyberpunk tương lai",
                         ].map((idea, i) => (
                           <button
@@ -1008,6 +1029,7 @@ export function AIStylistModal({
                             onClick={() => {
                               setCustomOutfitInput(idea);
                               setIsUserEditingPrompt(false);
+                              setIsFreshlyGenerated(false);
                             }}
                             className="text-[9px] px-1.5 py-0.5 bg-white/90 hover:bg-white text-amber-900 border border-amber-200 rounded-md transition-colors cursor-pointer"
                           >
@@ -1015,6 +1037,26 @@ export function AIStylistModal({
                           </button>
                         ))}
                       </div>
+
+                      {/* Nút Kích Hoạt Sinh Ảnh Nhanh Ngay Tại Ô Nhập */}
+                      <button
+                        type="button"
+                        onClick={handleGenerateStitchScreen}
+                        disabled={isGenerating || !customOutfitInput.trim()}
+                        className="w-full mt-1.5 py-2 px-3 bg-gradient-to-r from-[#b93829] via-[#c59b27] to-[#b93829] hover:brightness-110 active:scale-[0.99] text-white font-bold text-xs rounded-xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isGenerating ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-200" />
+                            <span>Google Stitch đang vẽ... ({elapsedSeconds}s)</span>
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="w-3.5 h-3.5 text-amber-200" />
+                            <span>✨ Sinh Ảnh Theo Mô Tả Này Ngay (Enter)</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -1399,15 +1441,15 @@ export function AIStylistModal({
                   </div>
                 </div>
 
-                {/* CTA Call API */}
-                <div className="space-y-1.5">
+                {/* CTA Call API - Sticky ở đáy cột trái để luôn trong tầm mắt */}
+                <div className="sticky bottom-0 bg-[#fcf9f3]/95 backdrop-blur-md pt-2 pb-1 border-t border-[#e5e2dc] z-10 space-y-1">
                   <button
                     onClick={handleGenerateStitchScreen}
-                    disabled={isGenerating}
-                    className={`w-full py-2.5 rounded-xl font-medium text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
+                    disabled={isGenerating || (outfitSourceMode === "custom" && !customOutfitInput.trim())}
+                    className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
                       isGenerating
                         ? "bg-slate-700 text-slate-300 cursor-not-allowed border border-slate-600"
-                        : "bg-[#1a2a44] hover:bg-[#0f1c30] text-[#c59b27] border border-[#c59b27]/40 hover:border-[#c59b27]"
+                        : "bg-[#1a2a44] hover:bg-[#0f1c30] text-[#c59b27] border border-[#c59b27]/40 hover:border-[#c59b27] active:scale-[0.99]"
                     }`}
                   >
                     {isGenerating ? (
@@ -1420,7 +1462,11 @@ export function AIStylistModal({
                     ) : (
                       <>
                         <Wand2 className="w-4 h-4 text-[#c59b27]" />
-                        <span>Sinh Ảnh Poster ({currentQualityConfig.label.split(" ")[0]} {currentQualityConfig.label.split(" ")[1]})</span>
+                        <span>
+                          {outfitSourceMode === "custom" && customOutfitInput.trim()
+                            ? `Sinh Ảnh: "${customOutfitInput.slice(0, 24)}${customOutfitInput.length > 24 ? '...' : ''}"`
+                            : `Sinh Ảnh Poster (${currentQualityConfig.label.split(" ")[0]} ${currentQualityConfig.label.split(" ")[1]})`}
+                        </span>
                       </>
                     )}
                   </button>
@@ -1431,11 +1477,27 @@ export function AIStylistModal({
               </div>
 
               {/* Cột hiển thị kết quả (md:col-span-7) */}
-              <div className="md:col-span-7 flex flex-col space-y-2.5">
+              <div className="md:col-span-7 flex flex-col space-y-2">
                 <div className="flex items-center justify-between pb-1 border-b border-[#e5e2dc]">
-                  <h4 className="font-serif font-bold text-sm text-[#1a2a44]">
-                    Lookbook Poster Trực Quan
-                  </h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-serif font-bold text-sm text-[#1a2a44]">
+                      Lookbook Poster Trực Quan
+                    </h4>
+                    {isGenerating ? (
+                      <span className="text-[10px] font-semibold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300 animate-pulse">
+                        🔄 Đang vẽ mới...
+                      </span>
+                    ) : isFreshlyGenerated ? (
+                      <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1">
+                        <Check className="w-3 h-3 text-emerald-600" /> Vừa sinh theo yêu cầu
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium text-slate-600 bg-slate-200/80 px-2 py-0.5 rounded-full border border-slate-300">
+                        📜 Mẫu tham khảo có sẵn
+                      </span>
+                    )}
+                  </div>
+
                   {generatedScreen?.screenshotUrl && (
                     <a
                       href={generatedScreen.screenshotUrl}
@@ -1447,6 +1509,32 @@ export function AIStylistModal({
                     </a>
                   )}
                 </div>
+
+                {/* Banner Thông Báo Kích Hoạt khi User đã gõ mô tả mới nhưng chưa bấm sinh ảnh */}
+                {!isGenerating && !isFreshlyGenerated && outfitSourceMode === "custom" && customOutfitInput.trim() && (
+                  <div className="p-2.5 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl flex items-center justify-between gap-3 text-slate-800 shadow-2xs animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Sparkles className="w-4 h-4 text-[#b93829] shrink-0 animate-bounce" />
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          Mô tả bạn đang yêu cầu: <span className="text-[#b93829]">"{customOutfitInput}"</span>
+                        </p>
+                        <p className="text-[10.5px] text-slate-600 line-clamp-1">
+                          Ảnh bên dưới là mẫu tham khảo. Hãy bấm nút để AI bắt đầu sinh ảnh theo yêu cầu!
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGenerateStitchScreen}
+                      disabled={isGenerating}
+                      className="shrink-0 px-3.5 py-1.5 bg-[#b93829] hover:bg-[#9e2e21] text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>Sinh Ảnh Ngay</span>
+                    </button>
+                  </div>
+                )}
 
                 {/* Khu vực ảnh Poster */}
                 <div className="relative min-h-[360px] max-h-[460px] bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
@@ -1491,6 +1579,20 @@ export function AIStylistModal({
 
                   {generatedScreen?.screenshotUrl ? (
                     <div className="relative w-full h-full flex items-center justify-center p-2 group">
+                      {/* Tag phân biệt nguồn ảnh ở góc trên */}
+                      <div className="absolute top-3 left-3 z-5 flex items-center gap-1.5">
+                        {isFreshlyGenerated ? (
+                          <div className="px-2.5 py-1 bg-emerald-950/85 backdrop-blur-md text-emerald-300 text-[10.5px] font-bold rounded-lg border border-emerald-500/60 shadow-lg flex items-center gap-1.5 animate-in fade-in">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            <span>Vừa sinh: "{freshGeneratedDescription}"</span>
+                          </div>
+                        ) : (
+                          <div className="px-2.5 py-1 bg-slate-950/80 backdrop-blur-md text-slate-300 text-[10.5px] font-medium rounded-lg border border-slate-700/80 shadow-md flex items-center gap-1.5">
+                            <span>📜 Mẫu tham khảo có sẵn</span>
+                          </div>
+                        )}
+                      </div>
+
                       <img
                         src={generatedScreen.screenshotUrl}
                         alt="Stitch Generated Fashion Poster"
@@ -1536,7 +1638,10 @@ export function AIStylistModal({
                       recentScreens.map((sc) => (
                         <div
                           key={sc.id}
-                          onClick={() => setGeneratedScreen(sc)}
+                          onClick={() => {
+                            setGeneratedScreen(sc);
+                            setIsFreshlyGenerated(false);
+                          }}
                           className={`w-16 h-20 shrink-0 rounded-lg overflow-hidden border cursor-pointer transition-all bg-slate-900 ${
                             generatedScreen?.id === sc.id
                               ? "border-[#b93829] ring-2 ring-[#b93829]"

@@ -1,6 +1,13 @@
 // api/stitch/_helper.js
 // Shared helpers for Vercel Serverless Functions and local Stitch integration
 import { StitchToolClient } from '@google/stitch-sdk';
+import dns from 'node:dns';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch {
+  // ignore
+}
 
 export const CURATED_HERITAGE_SCREENS = [
   {
