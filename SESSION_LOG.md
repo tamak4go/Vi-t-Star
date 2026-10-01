@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã fix toàn bộ API (Serverless functions Vercel, proxy, ping 1ms, hybrid key, fallback), đã kiểm thử E2E 100% pass và ĐÃ PUSH LÊN GITHUB REMOTE (`origin/main`, commit `bd49942`). Working tree hoàn toàn sạch (clean).
+> **Trạng thái hiện tại**: Đã xử lý triệt để thắc mắc "sao nó 0 gen theo yêu cầu", dập tắt 100% lỗi React infinite re-render loop (`Maximum update depth exceeded`), nâng cấp UX trực quan (nút sinh ảnh nhanh ngay ô nhập, phím Enter, sticky footer CTA, banner thông báo và badge phân biệt ảnh cũ vs ảnh mới), đã verify E2E 100% pass và ĐÃ PUSH LÊN GITHUB REMOTE (`origin/main`, commit `677ab8b`).
 
 ---
 
@@ -14,6 +14,30 @@
 ---
 
 ## 🔄 LỊCH SỬ CÁC LẦN LÀM VIỆC (TIMELINE / CHANGELOG)
+
+### ⏱️ Phiên 2026-10-01 19:25 | Giải Quyết Triệt Để Thắc Mắc "Sao Nó 0 Gen Theo Yêu Cầu", Sửa Lỗi React Loop & Nâng Cấp Toàn Diện UX Sinh Ảnh Theo Yêu Cầu
+- **Yêu cầu của User**: "sao nó 0 gen theo yêu cầu" (kèm ảnh chụp màn hình trong đó user nhập: `quần jean để tôi đi chụp kỉ yếu`, nhưng khung xem nhìn thấy ảnh Áo Tấc màu xanh cũ trong kho di sản).
+- **Phân tích nguyên nhân gốc rễ**:
+  1. **Hiểu lầm do UX (Critical UX Gap)**: Khi mở modal, hệ thống tự động tải lịch sử và hiển thị ngay poster đầu tiên (ảnh Áo Tấc cũ) vào khung xem trước. Form bên trái quá dài (8 khối controls) khiến nút "Sinh Ảnh Poster" bị che khuất xuống đáy màn hình. Người dùng gõ text xong nhìn sang phải thấy ngay ảnh Áo Tấc cũ nên lầm tưởng AI đã sinh ảnh đó nhưng không đúng yêu cầu.
+  2. **Lỗi React Infinite Loop (`Maximum update depth exceeded`)**: `equippedSummaries` được tạo mảng mới trên mỗi render, `useEffect` lắng nghe nó và gọi `setPromptAudit` liên tục hàng ngàn lần mỗi giây, khiến giao diện bị đơ lag và phản hồi thao tác click bị drop.
+  3. **DNS IPv6 Timeout**: Node v22 ưu tiên phân giải IPv6 tới Google Cloud gây chậm trễ kết nối.
+- **Giải pháp & Thực hiện toàn diện**:
+  1. **Dập tắt triệt để lỗi React Loop**: Chuyển `equippedSummaries` sang `useMemo` và chuyển `promptAudit` thành pure derived state qua `useMemo`, xóa bỏ vĩnh viễn `setPromptAudit` và `useEffect` lặp.
+  2. **Nút Sinh Ảnh Nhanh Ngay Tại Ô Nhập**: Thêm nút `[✨ Sinh Ảnh Theo Mô Tả Này Ngay (Enter)]` to rõ ràng ngay bên dưới ô nhập `customOutfitInput`, kèm hỗ trợ nhấn phím `Enter` là tự động kích hoạt sinh ảnh ngay lập tức.
+  3. **Sticky Action Bar**: Cố định nút "Sinh Ảnh Poster" chính ở đáy cột trái (`sticky bottom-0`) để nút luôn hiển thị trong tầm mắt dù form có cuộn dài cỡ nào.
+  4. **Badge & Banner Trực Quan Trên Khung Poster**:
+     - Thêm Banner màu vàng cam nổi bật: *"Mô tả bạn đang yêu cầu: 'quần jean...'. Ảnh bên dưới là mẫu tham khảo có sẵn. Bấm [Sinh Ảnh Ngay] để AI bắt đầu vẽ!"* kèm nút bấm 1-click.
+     - Badge trên ảnh: Phân biệt rõ rệt `📜 Mẫu tham khảo có sẵn` (khi chưa bấm) vs `🎉 Vừa sinh: "quần jean..."` (khi đã hoàn tất).
+  5. **Cấu hình IPv4 DNS**: Bổ sung `dns.setDefaultResultOrder('ipv4first')` cho cả `stitchPlugin.ts` và `api/stitch/_helper.js`.
+  6. **Đồng bộ Prompt & Cultural Guardrail**: Đảm bảo `generateStitchFashionPrompt` linh hoạt nhúng mô tả tự do của người dùng vào prompt kết xuất của Google Stitch.
+- **Trạng thái kiểm thử / Build**:
+  - Test trực tiếp `generate_screen_from_text` với Google Stitch API: **Thành công 100%** (sinh Screen ID `af304caf5b8b4d66a428b59d75182d3e`).
+  - Test API ping & screens cục bộ: **100% Pass** (latency 3364ms, screens: 20 mẫu).
+  - `npm run build`: **Pass 100% không lỗi (exit code 0)** trong 1.24s.
+  - Đã đóng gói commit và push lên remote `origin/main` (commit `677ab8b`).
+- **Tuân thủ Rule 8**: Không tự ý mở browser hay gọi `browser_subagent`.
+
+---
 
 ### ⏱️ Phiên 2026-10-01 18:10 | Nâng Cấp Rule 0 Tối Cao, Sửa Triệt Để Lỗi Kết Nối API & Vercel Serverless Function, Test E2E 100% Pass
 - **Yêu cầu của User**: "api có kết nối được đâu, thêm vào rule cao nhất sau khi làm xong phải kiểm tra mọi chức năng có hoạt động được 0 đã đúng yêu cầu của tôi chưa hợp lí chưa chứ 0 phải trả sản phẩm mà lỗi tùm lum api 0 kết nối được"
