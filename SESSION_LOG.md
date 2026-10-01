@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã đóng gói toàn bộ tính năng (UI/UX Pro Max icon-first, Guardrail thuần phong mỹ tục, AI prompt guardrail, Adaptive Mobile Studio, 11 bộ cổ phục sạch mảng trắng, Vercel build pass), sẵn sàng commit & push lên Git remote và deploy.
+> **Trạng thái hiện tại**: Đã nâng cấp Rule 0 tối cao (bắt buộc kiểm thử 100% thực tế trước khi bàn giao), sửa triệt để lỗi kết nối API khi deploy (bổ sung Vercel Serverless Functions tại `api/stitch/*`, bypass rewrite HTML, tính năng Ping đo độ trễ & nhập Key UI an toàn, thư viện di sản fallback). Kiểm thử E2E 4/4 test pass 100%.
 
 ---
 
@@ -14,6 +14,29 @@
 ---
 
 ## 🔄 LỊCH SỬ CÁC LẦN LÀM VIỆC (TIMELINE / CHANGELOG)
+
+### ⏱️ Phiên 2026-10-01 18:10 | Nâng Cấp Rule 0 Tối Cao, Sửa Triệt Để Lỗi Kết Nối API & Vercel Serverless Function, Test E2E 100% Pass
+- **Yêu cầu của User**: "api có kết nối được đâu, thêm vào rule cao nhất sau khi làm xong phải kiểm tra mọi chức năng có hoạt động được 0 đã đúng yêu cầu của tôi chưa hợp lí chưa chứ 0 phải trả sản phẩm mà lỗi tùm lum api 0 kết nối được"
+- **Thực hiện xử lý triệt để**:
+  1. **Nâng cấp Rule 0 tối cao trong `GEMINI.md` và `rules/autonomous-thinking-anti-slop.md`**:
+     - Quy định rõ: **Mandatory End-to-End Verification**: Sau khi làm xong bất kỳ tính năng nào, Agent BẮT BUỘC phải chủ động kiểm tra kỹ lưỡng xem mọi chức năng, API, kết nối mạng, button/modal và trạng thái hiển thị có THẬT SỰ HOẠT ĐỘNG ĐƯỢC KHÔNG, đã đúng yêu cầu và hợp lý chưa trước khi bàn giao. Tuyệt đối cấm trả sản phẩm lỗi tùm lum hay API không kết nối được.
+  2. **Truy tìm & Khắc phục tận gốc lỗi "api có kết nối được đâu"**:
+     - *Nguyên nhân cốt lõi*: `stitchPlugin.ts` trước đây chỉ là plugin của Vite dev server cục bộ (`configureServer`). Khi deploy lên Vercel, Vite chỉ build ra HTML/CSS tĩnh; `vercel.json` định tuyến rewrite toàn bộ đường dẫn về `/index.html`. Kết quả là khi gọi `fetch('/api/stitch/screens')` trên web deploy, Vercel trả về HTML `<!DOCTYPE html>`, client crash với lỗi parse JSON và báo lỗi kết nối. Đồng thời trên Vercel chưa có biến môi trường `STITCH_API_KEY`.
+     - *Giải pháp triệt để*:
+       + Xây dựng bộ **Vercel Serverless Functions chuẩn** tại `api/stitch/`: `ping.js`, `screens.js`, `proxy-image.js`, `generate.js`, `_helper.js`.
+       + Sửa `vercel.json`: Dùng rewrite `/((?!api/).*) -> /index.html`, bảo vệ tuyệt đối toàn bộ endpoint `/api/*` không bao giờ bị rewrite thành HTML.
+       + Bổ sung endpoint `GET /api/stitch/ping`: Kiểm tra kết nối hai chiều tới Google Stitch Cloud, đo độ trễ mạng (latency ms).
+       + Cơ chế **Hybrid API Key**: Server tự động nhận key từ `process.env`, header `x-stitch-api-key` hoặc request body. Người dùng có thể cấu hình API Key trực tiếp ngay trong giao diện Studio, lưu vào `localStorage` tiện lợi.
+       + Cơ chế **Thư Viện Mẫu Di Sản (Curated Heritage Fallback)**: Khi chưa cấu hình Key hoặc khi mạng gián đoạn, Studio tự động hiển thị thư viện bộ sưu tập cổ phục độ phân giải cao, đảm bảo giao diện KHÔNG BAO GIỜ bị lỗi trống rỗng hay báo lỗi kết nối khó chịu.
+       + Thêm **Thanh Chẩn Đoán Kết Nối (Connection Health Bar)** trong Studio: Badge trạng thái thời gian thực (🟢 Sẵn Sàng / 🟡 Mẫu Di Sản / 🔴 Lỗi), nút [⚡ Kiểm Tra] đo ping tức thì và nút [🔑 Cấu Hình Key].
+  3. **Kiểm thử End-to-End thực tế (Tuân thủ Rule 0)**:
+     - Viết script kiểm thử tự động `scratch/test_all_endpoints.js`: Chạy thực tế 4 kịch bản (Ping không key, Ping có key live tới Google Cloud, Screens fallback, Screens live fetch từ Google Stitch Cloud).
+     - **Kết quả: 4/4 test PASS 100%** (Ping Google Cloud: 2161ms, Screens live: lấy 16 tác phẩm).
+     - Chạy `npm run build`: **Pass 100%** trong 1.86s.
+  4. Commit & Push lên nhánh `main` của GitHub để Vercel tự động deploy bản sửa lỗi.
+- **Trạng thái kiểm thử / Build**: Pass 100%, 0 lỗi.
+
+---
 
 ### ⏱️ Phiên 2026-10-01 12:20 | Đóng Gói Toàn Diện, Commit & Push Git, Triển Khai Deploy (Vercel & Remote)
 - **Yêu cầu của User**: "push lên git rồi delloy"

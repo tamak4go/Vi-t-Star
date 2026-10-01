@@ -21,6 +21,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Key,
+  Activity,
 } from "lucide-react";
 import {
   STYLING_OCCASIONS,
@@ -92,6 +94,20 @@ export function AIStylistModal({
   const [recentScreens, setRecentScreens] = useState<StitchScreenResult[]>([]);
   const [loadingRecent, setLoadingRecent] = useState<boolean>(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Quản lý API Key & Trạng Thái Kết Nối Google Stitch
+  const [userApiKey, setUserApiKey] = useState<string>(() => {
+    return localStorage.getItem("stitch_api_key") || "";
+  });
+  const [userProjectId, setUserProjectId] = useState<string>(() => {
+    return localStorage.getItem("stitch_project_id") || "8753486478358563567";
+  });
+  const [showKeyConfig, setShowKeyConfig] = useState<boolean>(false);
+  const [inputApiKey, setInputApiKey] = useState<string>("");
+  const [inputProjectId, setInputProjectId] = useState<string>("8753486478358563567");
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "testing" | "connected" | "unconfigured" | "error">("idle");
+  const [connectionLatency, setConnectionLatency] = useState<number | null>(null);
+  const [connectionMessage, setConnectionMessage] = useState<string>("");
 
   const selectedOccasion =
     STYLING_OCCASIONS.find((o) => o.id === selectedOccasionId) || STYLING_OCCASIONS[0];
@@ -215,16 +231,71 @@ export function AIStylistModal({
     }
   }, [isOpen]);
 
-  // Tải danh sách các poster trước đó từ Stitch API
-  const fetchRecentScreens = async () => {
+  // Kiểm tra kết nối và đo độ trễ tới Google Stitch API
+  const testStitchConnection = async (key = userApiKey, proj = userProjectId) => {
+    setConnectionStatus("testing");
+    try {
+      const res = await fetch("/api/stitch/ping", {
+        headers: {
+          ...(key ? { "x-stitch-api-key": key } : {}),
+          ...(proj ? { "x-stitch-project-id": proj } : {}),
+        },
+      });
+      const data = await res.json();
+      if (data.configured && data.success) {
+        setConnectionStatus("connected");
+        setConnectionLatency(data.latencyMs ?? null);
+        setConnectionMessage(data.message || `Đã kết nối (${data.latencyMs}ms)`);
+      } else if (!data.configured) {
+        setConnectionStatus("unconfigured");
+        setConnectionMessage(data.message || "Chưa cấu hình API Key (sử dụng thư viện di sản mẫu)");
+      } else {
+        setConnectionStatus("error");
+        setConnectionMessage(data.error || "Không thể kết nối Google Stitch SDK");
+      }
+    } catch (err: any) {
+      setConnectionStatus("error");
+      setConnectionMessage(`Lỗi kết nối server: ${err.message}`);
+    }
+  };
+
+  const handleOpenKeyConfig = () => {
+    setInputApiKey(userApiKey);
+    setInputProjectId(userProjectId);
+    setShowKeyConfig(true);
+  };
+
+  const handleSaveKeyConfig = () => {
+    const trimmedKey = inputApiKey.trim();
+    const trimmedProj = (inputProjectId.trim() || "8753486478358563567").replace("projects/", "");
+    setUserApiKey(trimmedKey);
+    setUserProjectId(trimmedProj);
+    if (trimmedKey) {
+      localStorage.setItem("stitch_api_key", trimmedKey);
+    } else {
+      localStorage.removeItem("stitch_api_key");
+    }
+    localStorage.setItem("stitch_project_id", trimmedProj);
+    setShowKeyConfig(false);
+    showToast("💾 Đã lưu cấu hình Google Stitch!");
+    testStitchConnection(trimmedKey, trimmedProj);
+    fetchRecentScreens(trimmedKey, trimmedProj);
+  };
+
+  // Tải danh sách các poster trước đó từ Stitch API (với fallback di sản tự động)
+  const fetchRecentScreens = async (key = userApiKey, proj = userProjectId) => {
     setLoadingRecent(true);
     try {
-      const res = await fetch("/api/stitch/screens");
+      const res = await fetch("/api/stitch/screens", {
+        headers: {
+          ...(key ? { "x-stitch-api-key": key } : {}),
+          ...(proj ? { "x-stitch-project-id": proj } : {}),
+        },
+      });
       const data = await res.json();
       if (data.success && Array.isArray(data.screens)) {
         const valid = data.screens.filter((s: any) => s.screenshotUrl);
         setRecentScreens(valid);
-        // Tự động hiển thị poster đầu tiên nếu chưa có ảnh nào được chọn
         setGeneratedScreen((curr) => curr || valid[0] || null);
       }
     } catch (err) {
@@ -236,6 +307,7 @@ export function AIStylistModal({
 
   useEffect(() => {
     if (isOpen && activeTab === "stitch") {
+      testStitchConnection();
       fetchRecentScreens();
     }
   }, [isOpen, activeTab]);
@@ -273,12 +345,18 @@ export function AIStylistModal({
     try {
       const res = await fetch("/api/stitch/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(userApiKey ? { "x-stitch-api-key": userApiKey } : {}),
+          ...(userProjectId ? { "x-stitch-project-id": userProjectId } : {}),
+        },
         signal: controller.signal,
         body: JSON.stringify({
           prompt: customPrompt,
           quality,
           deviceType: cfg.deviceType,
+          apiKey: userApiKey,
+          projectId: userProjectId,
         }),
       });
 
@@ -286,17 +364,20 @@ export function AIStylistModal({
       if (data.success && data.screen) {
         setGeneratedScreen(data.screen);
         showToast("🎉 Google Stitch đã hoàn tất poster thời trang!");
-        // Refresh lại danh sách gần đây
         fetchRecentScreens();
       } else {
-        showToast(`⚠️ Lỗi từ Stitch: ${data.error || "Không thể sinh ảnh"}`);
+        const errMsg = data.error || "Không thể sinh ảnh";
+        showToast(`⚠️ Lỗi từ Stitch: ${errMsg}`);
+        if (errMsg.includes("STITCH_API_KEY") || errMsg.includes("API Key")) {
+          setShowKeyConfig(true);
+        }
       }
     } catch (err: any) {
       if (err.name === "AbortError") {
         console.log("Người dùng đã hủy yêu cầu Stitch.");
       } else {
         console.error("Lỗi gọi Stitch API:", err);
-        showToast("❌ Không thể kết nối tới Google Stitch API.");
+        showToast(`❌ Không thể kết nối tới Google Stitch API: ${err.message}`);
       }
     } finally {
       setIsGenerating(false);
@@ -543,7 +624,166 @@ export function AIStylistModal({
             </div>
           ) : (
             /* TAB 2: GOOGLE STITCH EDITORIAL STUDIO */
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+            <div className="space-y-3.5">
+              {/* Thanh Chẩn Đoán & Trạng Thái Kết Nối API */}
+              <div className="p-2.5 sm:p-3 bg-white rounded-xl border border-[#c59b27]/30 shadow-xs flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      connectionStatus === "connected"
+                        ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.6)]"
+                        : connectionStatus === "testing"
+                        ? "bg-amber-500 animate-ping"
+                        : connectionStatus === "unconfigured"
+                        ? "bg-amber-400"
+                        : "bg-rose-500"
+                    }`}
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-xs font-bold text-[#1a2a44]">
+                        {connectionStatus === "connected"
+                          ? "Google Stitch Cloud: Sẵn Sàng"
+                          : connectionStatus === "testing"
+                          ? "Đang kiểm tra kết nối Stitch..."
+                          : connectionStatus === "unconfigured"
+                          ? "Chế Độ Trưng Bày Di Sản (Mẫu Sẵn)"
+                          : "Lỗi Kết Nối Google Stitch"}
+                      </span>
+                      {connectionLatency !== null && connectionStatus === "connected" && (
+                        <span className="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          {connectionLatency}ms
+                        </span>
+                      )}
+                      <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+                        ID: {userProjectId}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 truncate max-w-[480px]">
+                      {connectionMessage ||
+                        (connectionStatus === "connected"
+                          ? "Sẵn sàng sinh ảnh poster thời trang với Gemini 3.8 Flash."
+                          : "Đang nạp trạng thái kết nối...")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => testStitchConnection()}
+                    disabled={connectionStatus === "testing"}
+                    className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 hover:text-[#1a2a44] bg-[#f0eee8] hover:bg-[#e5e2dc] rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                    title="Kiểm tra kết nối và đo ping tới Google Stitch"
+                  >
+                    <Activity
+                      className={`w-3.5 h-3.5 ${
+                        connectionStatus === "testing"
+                          ? "animate-spin text-amber-600"
+                          : "text-[#c59b27]"
+                      }`}
+                    />
+                    <span className="hidden xs:inline">
+                      {connectionStatus === "testing" ? "Đang Test..." : "Kiểm Tra"}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (showKeyConfig) {
+                        setShowKeyConfig(false);
+                      } else {
+                        handleOpenKeyConfig();
+                      }
+                    }}
+                    className={`flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg transition-colors cursor-pointer border ${
+                      showKeyConfig
+                        ? "bg-[#1a2a44] text-white border-[#1a2a44]"
+                        : "text-slate-700 hover:text-[#1a2a44] bg-[#f0eee8] hover:bg-[#e5e2dc] border-transparent"
+                    }`}
+                    title="Cấu hình Google Stitch API Key"
+                  >
+                    <Key className="w-3.5 h-3.5 text-[#b93829]" />
+                    <span>{userApiKey ? "Đổi Key" : "Nhập Key"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Ngăn Cấu Hình API Key Thu Gọn */}
+              {showKeyConfig && (
+                <div className="p-3.5 sm:p-4 bg-[#fbf9f5] border border-[#c59b27]/40 rounded-xl shadow-xs space-y-3 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between border-b border-[#e5e2dc] pb-2">
+                    <div className="flex items-center gap-2">
+                      <Key className="w-4 h-4 text-[#b93829]" />
+                      <h4 className="text-xs font-bold text-[#1a2a44] uppercase tracking-wide">
+                        Cấu Hình Google Stitch API Key & Project ID
+                      </h4>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyConfig(false)}
+                      className="text-slate-400 hover:text-slate-600 text-xs p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 block">
+                        Stitch API Key:
+                      </label>
+                      <input
+                        type="password"
+                        value={inputApiKey}
+                        onChange={(e) => setInputApiKey(e.target.value)}
+                        placeholder="Dán API Key (AQ.AA...)"
+                        className="w-full px-3 py-1.5 text-xs font-mono bg-white border border-[#e5e2dc] rounded-lg focus:outline-none focus:border-[#b93829] shadow-inner"
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        Lưu an toàn trong trình duyệt (localStorage), không lo mất khi reload hay chuyển tab.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-slate-700 block">
+                        Stitch Project ID:
+                      </label>
+                      <input
+                        type="text"
+                        value={inputProjectId}
+                        onChange={(e) => setInputProjectId(e.target.value)}
+                        placeholder="8753486478358563567"
+                        className="w-full px-3 py-1.5 text-xs font-mono bg-white border border-[#e5e2dc] rounded-lg focus:outline-none focus:border-[#b93829] shadow-inner"
+                      />
+                      <p className="text-[10px] text-slate-500">
+                        ID dự án Vietnamese Heritage Atelier trên Google Stitch Studio.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#e5e2dc]">
+                    <button
+                      type="button"
+                      onClick={() => setShowKeyConfig(false)}
+                      className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200/60 rounded-lg cursor-pointer transition-colors"
+                    >
+                      Đóng
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveKeyConfig}
+                      className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold bg-[#b93829] hover:bg-[#9e2e21] text-white rounded-lg shadow-xs cursor-pointer transition-colors"
+                    >
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Lưu & Kiểm Tra Ngay</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
               {/* Form tùy biến prompt (md:col-span-5) */}
               <div className="md:col-span-5 space-y-3.5">
                 <div className="border-b border-[#e5e2dc] pb-2">
@@ -1320,6 +1560,7 @@ export function AIStylistModal({
                   </div>
                 </div>
               </div>
+            </div>
             </div>
           )}
         </div>
