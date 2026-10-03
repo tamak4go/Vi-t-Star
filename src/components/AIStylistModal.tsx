@@ -338,6 +338,12 @@ export function AIStylistModal({
 
   // Xử lý gọi API Stitch sinh ảnh
   const handleGenerateStitchScreen = async () => {
+    // Nếu chưa có API Key → mở panel nhập key thay vì gọi API rồi báo lỗi
+    if (!userApiKey) {
+      setShowKeyConfig(true);
+      showToast("🔑 Vui lòng nhập Stitch API Key để sinh ảnh!");
+      return;
+    }
     if (!customPrompt.trim()) return;
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -350,7 +356,7 @@ export function AIStylistModal({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(userApiKey ? { "x-stitch-api-key": userApiKey } : {}),
+          "x-stitch-api-key": userApiKey,
           ...(userProjectId ? { "x-stitch-project-id": userProjectId } : {}),
         },
         signal: controller.signal,
@@ -378,9 +384,12 @@ export function AIStylistModal({
         fetchRecentScreens();
       } else {
         const errMsg = data.error || "Không thể sinh ảnh";
-        showToast(`⚠️ Lỗi từ Stitch: ${errMsg}`);
+        // Nếu lỗi key → mở config thay vì toast khó chịu
         if (errMsg.includes("STITCH_API_KEY") || errMsg.includes("API Key")) {
           setShowKeyConfig(true);
+          showToast("🔑 API Key không hợp lệ. Vui lòng nhập lại!");
+        } else {
+          showToast(`⚠️ Lỗi Stitch: ${errMsg.slice(0, 80)}`);
         }
       }
     } catch (err: any) {
@@ -388,7 +397,7 @@ export function AIStylistModal({
         console.log("Người dùng đã hủy yêu cầu Stitch.");
       } else {
         console.error("Lỗi gọi Stitch API:", err);
-        showToast(`❌ Không thể kết nối tới Google Stitch API: ${err.message}`);
+        showToast(`❌ Mất kết nối tới Google Stitch: ${err.message?.slice(0, 60)}`);
       }
     } finally {
       setIsGenerating(false);
@@ -1449,6 +1458,8 @@ export function AIStylistModal({
                     className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer ${
                       isGenerating
                         ? "bg-slate-700 text-slate-300 cursor-not-allowed border border-slate-600"
+                        : !userApiKey
+                        ? "bg-[#b93829] hover:bg-[#9e2e21] text-white border border-[#b93829]/60 active:scale-[0.99]"
                         : "bg-[#1a2a44] hover:bg-[#0f1c30] text-[#c59b27] border border-[#c59b27]/40 hover:border-[#c59b27] active:scale-[0.99]"
                     }`}
                   >
@@ -1458,6 +1469,11 @@ export function AIStylistModal({
                         <span>
                           Stitch đang vẽ ({currentQualityConfig.label.split(" ")[0]}): {elapsedSeconds}s ({currentQualityConfig.estimatedTime})...
                         </span>
+                      </>
+                    ) : !userApiKey ? (
+                      <>
+                        <Key className="w-4 h-4 text-white" />
+                        <span>🔑 Nhập API Key để Sinh Ảnh</span>
                       </>
                     ) : (
                       <>
@@ -1470,9 +1486,15 @@ export function AIStylistModal({
                       </>
                     )}
                   </button>
-                  <p className="text-[10px] text-slate-500 italic text-center">
-                    💡 Chế độ {currentQualityConfig.label}: {currentQualityConfig.estimatedTime}.
-                  </p>
+                  {!userApiKey ? (
+                    <p className="text-[10px] text-[#b93829] font-semibold italic text-center">
+                      ⚡ Nhập Google Stitch API Key để mở khóa tính năng sinh ảnh poster AI.
+                    </p>
+                  ) : (
+                    <p className="text-[10px] text-slate-500 italic text-center">
+                      💡 Chế độ {currentQualityConfig.label}: {currentQualityConfig.estimatedTime}.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1536,8 +1558,33 @@ export function AIStylistModal({
                   </div>
                 )}
 
-                {/* Khu vực ảnh Poster */}
+                {/* Khu vực ảnh Poster - Nếu chưa có key, hiển thị placeholder hướng dẫn */}
                 <div className="relative min-h-[360px] max-h-[460px] bg-slate-900 rounded-2xl overflow-hidden border border-slate-800 flex items-center justify-center shadow-inner">
+                  {/* Placeholder khi chưa cấu hình API Key */}
+                  {!isGenerating && !userApiKey && !generatedScreen && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 z-5">
+                      <div className="w-16 h-16 rounded-2xl bg-[#b93829]/20 border border-[#b93829]/40 flex items-center justify-center">
+                        <Key className="w-8 h-8 text-[#c59b27]" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-sm font-bold text-white">Cần API Key để Sinh Ảnh</p>
+                        <p className="text-xs text-slate-400 max-w-[240px] leading-relaxed">
+                          Nhập Google Stitch API Key để tạo poster thời trang cổ phục bằng AI Gemini Flash.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleOpenKeyConfig}
+                        className="flex items-center gap-2 px-5 py-2 bg-[#b93829] hover:bg-[#9e2e21] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                        Nhập API Key Ngay
+                      </button>
+                      <p className="text-[10px] text-slate-500">
+                        Key được lưu riêng tư trong trình duyệt của bạn (localStorage)
+                      </p>
+                    </div>
+                  )}
                   {/* Overlay đếm tiến độ khi đang sinh ảnh */}
                   {isGenerating && (
                     <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-xs z-10 p-6 flex flex-col items-center justify-center text-center space-y-3">

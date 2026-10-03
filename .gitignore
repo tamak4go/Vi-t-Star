@@ -32,3 +32,6 @@ dist-ssr
 # Temporary scratch and extraction folders
 scratch/
 temp_stitch_extract/
+
+.vercel
+.env*
