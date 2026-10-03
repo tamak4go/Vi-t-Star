@@ -545,6 +545,8 @@ export interface StitchPromptOptions {
   customBackground?: string;
   backgroundSetting?: string;
   quality?: GenerationQuality;
+  hasCustomFace?: boolean;
+  customFaceName?: string;
 }
 
 export function generateStitchFashionPrompt(options: StitchPromptOptions): string {
@@ -562,6 +564,8 @@ export function generateStitchFashionPrompt(options: StitchPromptOptions): strin
     customBackground = "",
     backgroundSetting,
     quality = "standard",
+    hasCustomFace = false,
+    customFaceName = "",
   } = options;
 
   const occasion = STYLING_OCCASIONS.find((o) => o.id === occasionId) || STYLING_OCCASIONS[0];
@@ -616,13 +620,17 @@ export function generateStitchFashionPrompt(options: StitchPromptOptions): strin
     }
   }
 
-  // Giới tính hiển thị
+  // Giới tính hiển thị & gương mặt cá nhân hóa
   const genderTerm =
     userGender === "male"
       ? "Vietnamese male model"
       : userGender === "unisex"
       ? "Vietnamese fashion model"
       : "Vietnamese female model";
+
+  const faceNote = hasCustomFace
+    ? `, featuring custom portrait (${customFaceName || 'Gen Z model'}) with radiant youthful Vietnamese facial features, natural expression and modern poise`
+    : '';
 
   const creativeDetailStr = userCreativeText && userCreativeText.trim()
     ? `Creative nuances & touches: ${userCreativeText.trim()}.`
@@ -632,7 +640,7 @@ export function generateStitchFashionPrompt(options: StitchPromptOptions): strin
   if (quality === "fast") {
     return `Minimalist Vietnamese fashion lookbook card draft:
 [LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
-Subject: A stylish ${genderTerm} (${userVibe}).
+Subject: A stylish ${genderTerm}${faceNote} (${userVibe}).
 Attire: ${outfitListStr}.
 ${creativeDetailStr ? `Details: ${creativeDetailStr}\n` : ""}Setting / Background: ${effectiveSetting}.
 Layout: Clean single-column mobile lookbook card, title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", minimalist vector layout, streamlined web rendering.`;
@@ -642,7 +650,7 @@ Layout: Clean single-column mobile lookbook card, title "VIETNAM FASHION LOOKBOO
   if (quality === "standard") {
     return `Editorial lookbook fashion poster:
 [LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
-Subject: A young stylish ${genderTerm} (aesthetic: ${userVibe}) posing with elegance and poise.
+Subject: A young stylish ${genderTerm}${faceNote} (aesthetic: ${userVibe}) posing with elegance and poise.
 Attire: ${outfitListStr}.
 ${creativeDetailStr ? `Creative Accents: ${creativeDetailStr}\n` : ""}Theme: ${outfitThemeName} (${occasion.tagline}).
 Cultural Details: Refined textures, authentic collar neckline, handcrafted details and harmonious color palette.
@@ -653,7 +661,7 @@ Typography & Layout: Fashion lookbook poster with title "VIETNAM FASHION LOOKBOO
   // Siêu nét 8K: dành cho bản poster triển lãm cao cấp
   return `High-fashion full-body lookbook editorial poster:
 [LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
-Subject: A young stylish ${genderTerm} (aesthetic: ${userVibe}) posing gracefully in full figure.
+Subject: A young stylish ${genderTerm}${faceNote} (aesthetic: ${userVibe}) posing gracefully in full figure.
 Attire: ${outfitListStr}.
 ${creativeDetailStr ? `Creative Accents: ${creativeDetailStr}\n` : ""}Theme: ${outfitThemeName} (${occasion.tagline}).
 Cultural Details: Exquisite fabric textures, layered silk robes, authentic neckline collar, traditional hand-crafted embroidery details.

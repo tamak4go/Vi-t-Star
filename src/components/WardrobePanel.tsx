@@ -22,6 +22,7 @@ interface WardrobePanelProps {
   onApplyPreset: (presetName: string) => void;
   onOpenAIStylist?: () => void;
   isMissingBottom?: boolean;
+  onOpenCulturalStory?: (item: WardrobeItem) => void;
 }
 
 type TabFilter = 'all' | 'outerTop' | 'innerTop' | 'bottom' | 'belt' | 'headwear' | 'shoes' | 'accessories';
@@ -53,6 +54,7 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
   onApplyPreset,
   onOpenAIStylist,
   isMissingBottom,
+  onOpenCulturalStory,
 }) => {
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
 
@@ -258,16 +260,31 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
                   />
                 </div>
 
-                <h3
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onToggleEquipItem(item);
-                  }}
-                  className="text-[12px] font-bold text-primary truncate leading-tight cursor-pointer hover:text-secondary transition-colors"
-                  title={item.name}
-                >
-                  {item.name}
-                </h3>
+                <div className="flex items-center justify-between gap-1">
+                  <h3
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleEquipItem(item);
+                    }}
+                    className="text-[12px] font-bold text-primary truncate leading-tight cursor-pointer hover:text-secondary transition-colors"
+                    title={item.name}
+                  >
+                    {item.name}
+                  </h3>
+                  {onOpenCulturalStory && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenCulturalStory(item);
+                      }}
+                      className="w-5 h-5 rounded flex items-center justify-center text-[#8b6914] hover:text-[#AE3022] hover:bg-[#e8ded0] transition-colors shrink-0"
+                      title="Xem điển tích lịch sử & ý nghĩa biểu tượng"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">auto_stories</span>
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Action Button: Đang Mặc / Mặc Thử */}

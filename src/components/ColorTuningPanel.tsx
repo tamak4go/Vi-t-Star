@@ -1,14 +1,14 @@
 // src/components/ColorTuningPanel.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import {
   CATEGORY_LABELS,
-  LAYER_MAP,
   TRADITIONAL_PALETTE,
   type BrightnessState,
   type Category,
   type ColorState,
   type EquippedOutfit,
 } from '../data/dressroomConfig';
+import { analyzeEquippedOutfitHarmony } from '../services/culturalKnowledgeService';
 
 interface ColorTuningPanelProps {
   activeCategory: Category;
@@ -30,7 +30,6 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
   onResetLayerColor,
 }) => {
   const currentItem = equippedOutfit[activeCategory];
-  const zIndex = LAYER_MAP[activeCategory];
   const categoryLabel = CATEGORY_LABELS[activeCategory];
 
   if (!currentItem) {
@@ -48,6 +47,14 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
   const currentColor = colorState[currentItem.id] || currentItem.defaultColor || '#AE3022';
   const currentBrightness = brightnessState[currentItem.id] || 0;
   const isCustomized = Boolean(colorState[currentItem.id] && colorState[currentItem.id] !== currentItem.defaultColor);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyHex = () => {
+    navigator.clipboard.writeText(currentColor.toUpperCase()).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }).catch(() => {});
+  };
 
   return (
     <div
@@ -62,12 +69,20 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
             Bảng Sắc Phục Cổ
           </h3>
         </div>
-        <span
-          id="active-color-layer-name"
-          className="text-[10px] bg-secondary text-on-secondary px-2 py-0.5 rounded-full font-medium"
-        >
-          {currentItem.name} (Tầng {zIndex})
-        </span>
+        <div className="flex items-center gap-1.5">
+          {/* Live swatch */}
+          <span
+            className="w-5 h-5 rounded-full border border-black/15 shadow-sm shrink-0 transition-colors duration-150"
+            style={{ backgroundColor: currentColor }}
+            title={currentColor}
+          />
+          <span
+            id="active-color-layer-name"
+            className="text-[10px] bg-secondary text-on-secondary px-2 py-0.5 rounded-full font-medium"
+          >
+            {currentItem.name}
+          </span>
+        </div>
       </div>
 
       {currentItem.recolorable ? (
@@ -123,12 +138,18 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
                   onChange={(e) => onChangeColor(currentItem.id, e.target.value)}
                   className="w-7 h-7 rounded border border-outline-variant cursor-pointer p-0 bg-transparent"
                 />
-                <span
-                  id="custom-hex-label"
-                  className="font-mono text-[11px] font-medium text-primary bg-surface px-1.5 py-0.5 rounded border border-outline-variant/30 uppercase"
+                <button
+                  type="button"
+                  id="copy-hex-btn"
+                  onClick={handleCopyHex}
+                  className="font-mono text-[11px] font-medium text-primary bg-surface px-1.5 py-0.5 rounded border border-outline-variant/30 uppercase hover:bg-surface-container hover:border-secondary/50 transition-colors cursor-pointer flex items-center gap-1"
+                  title="Nhấn để sao chép mã màu"
                 >
                   {currentColor}
-                </span>
+                  <span className="material-symbols-outlined text-[11px] text-outline">
+                    {copied ? 'check' : 'content_copy'}
+                  </span>
+                </button>
               </div>
             </div>
 
@@ -184,6 +205,79 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
           </p>
         </div>
       )}
+
+      {/* Ngũ Hành & Color Harmony Engine Section */}
+      <ColorHarmonySection equippedOutfit={equippedOutfit} colorState={colorState} />
+    </div>
+  );
+};
+
+// Sub-component phân tích ngũ hành và độ hài hòa màu sắc di sản
+const ColorHarmonySection: React.FC<{
+  equippedOutfit: EquippedOutfit;
+  colorState: ColorState;
+}> = ({ equippedOutfit, colorState }) => {
+  const harmony = analyzeEquippedOutfitHarmony(equippedOutfit, colorState);
+
+  // Chọn màu sắc hiển thị theo ngũ hành chủ đạo
+  const elementColorMap: Record<string, string> = {
+    Kim: '#E0DCD3',
+    Mộc: '#2E5339',
+    Thủy: '#2F4B6E',
+    Hỏa: '#AE3022',
+    Thổ: '#C59B27',
+  };
+
+  return (
+    <div className="mt-2 pt-2 border-t border-outline-variant/30 flex flex-col gap-1.5 bg-[#FAF6EE] p-2.5 rounded-xl border border-[#C59B27]/40 shadow-inner">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5 text-[#1a2a44]">
+          <span className="material-symbols-outlined text-[17px] text-[#AE3022]">balance</span>
+          <span className="text-[11.5px] font-bold uppercase tracking-wider">
+            Ngũ Hành & Hài Hòa Sắc Phục
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="font-mono font-bold text-[12px] text-[#AE3022]">
+            {harmony.score}
+          </span>
+          <span className="text-[10px] text-on-surface-variant font-mono">/100</span>
+        </div>
+      </div>
+
+      {/* Score bar */}
+      <div className="w-full bg-[#e8ded0] h-1.5 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gradient-to-r from-[#AE3022] via-[#C59B27] to-[#2E5339] rounded-full transition-all duration-300"
+          style={{ width: `${harmony.score}%` }}
+        />
+      </div>
+
+      {/* Relationship Badge & Elements */}
+      <div className="flex items-center justify-between flex-wrap gap-1 mt-0.5">
+        <span className="text-[10px] px-2 py-0.5 rounded-md bg-[#1a2a44] text-[#eed182] font-semibold">
+          {harmony.relationship}
+        </span>
+        <div className="flex items-center gap-1">
+          {harmony.elementsPresent.map((el) => (
+            <span
+              key={el}
+              className="text-[9px] px-1.5 py-0.2 rounded font-bold border border-black/10"
+              style={{
+                backgroundColor: elementColorMap[el] || '#fff',
+                color: el === 'Kim' || el === 'Thổ' ? '#1a2a44' : '#fff',
+              }}
+            >
+              Hành {el}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Philosophical advice */}
+      <p className="text-[10.5px] text-[#3b322a] leading-tight mt-0.5 italic">
+        "{harmony.commentary}"
+      </p>
     </div>
   );
 };

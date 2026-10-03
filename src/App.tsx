@@ -2,11 +2,15 @@
 import { useRef, useState } from 'react';
 import { AIStylistModal } from './components/AIStylistModal';
 import { ColorTuningPanel } from './components/ColorTuningPanel';
+import { CulturalStoryModal } from './components/CulturalStoryModal';
 import { DressCanvas } from './components/DressCanvas';
+import { FaceUploadModal, DEFAULT_FACE_CONFIG, type UserFaceConfig } from './components/FaceUploadModal';
 import { LayerInspector } from './components/LayerInspector';
 import { SnapshotModal } from './components/SnapshotModal';
 import { WardrobePanel } from './components/WardrobePanel';
+import { WeatherOccasionBar } from './components/WeatherOccasionBar';
 import { checkCulturalEtiquette } from './services/aiStylistService';
+import { getItemCulturalStory } from './services/culturalKnowledgeService';
 import {
   BASE_MANNEQUIN_ITEM,
   INITIAL_BRIGHTNESS_STATE,
@@ -51,6 +55,29 @@ export function App() {
   const [isAIStylistOpen, setIsAIStylistOpen] = useState(false);
   const [mobileTab, setMobileTab] = useState<'wardrobe' | 'color' | 'layers'>('wardrobe');
   const [toast, setToast] = useState<string | null>(null);
+
+  // Master Plan Audition Features:
+  // 1. Cá nhân hóa gương mặt Avatar (Stage 2)
+  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
+  const [userFaceConfig, setUserFaceConfig] = useState<UserFaceConfig>(() => {
+    try {
+      const saved = localStorage.getItem('vietstar_custom_face');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Không thể đọc face config:', e);
+    }
+    return DEFAULT_FACE_CONFIG;
+  });
+
+  // 2. Hộp thoại điển tích văn hóa (Stage 1 & 3)
+  const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
+  const [selectedStoryItem, setSelectedStoryItem] = useState<WardrobeItem | null>(null);
+
+  // 3. Bộ so sánh bản phối A / B (Stage 4)
+  const [isABMode, setIsABMode] = useState(false);
+  const [outfitSetA, setOutfitSetA] = useState<{ outfit: EquippedOutfit; colors: ColorState } | null>(null);
+  const [outfitSetB, setOutfitSetB] = useState<{ outfit: EquippedOutfit; colors: ColorState } | null>(null);
+  const [activeSlot, setActiveSlot] = useState<'A' | 'B'>('A');
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
@@ -185,6 +212,79 @@ export function App() {
     showToast('Đã đặt lại sàn thử đồ về mặc định');
   };
 
+  // Handler cá nhân hóa gương mặt (Face Avatar)
+  const handleApplyFaceConfig = (config: UserFaceConfig) => {
+    setUserFaceConfig(config);
+    try {
+      localStorage.setItem('vietstar_custom_face', JSON.stringify(config));
+    } catch (e) {
+      console.error('Không thể lưu face config:', e);
+    }
+    showToast(config.enabled ? `✨ Đã gắn gương mặt: ${config.name}!` : 'Đã khôi phục gương mặt mộc');
+  };
+
+  // Handler mở hộp thoại điển tích văn hóa
+  const handleOpenCulturalStory = (item: WardrobeItem | null) => {
+    setSelectedStoryItem(item);
+    setIsStoryModalOpen(true);
+  };
+
+  // Handler áp dụng gợi ý thời tiết & bối cảnh
+  const handleApplyWeatherRecommendation = (setId: string, suggestedHex?: string) => {
+    const preset = OUTFIT_PRESETS.find((p) => p.setId === setId || p.id === setId);
+    if (preset) {
+      const newEquipped = buildEquippedFromPreset(preset.id);
+      setEquippedOutfit(newEquipped);
+      setLayerVisibility(INITIAL_LAYER_STATE);
+      if (suggestedHex) {
+        const recolorableItem = Object.values(newEquipped).find((it) => it?.recolorable);
+        if (recolorableItem) {
+          setColorState({ [recolorableItem.id]: suggestedHex });
+        } else {
+          setColorState(INITIAL_COLOR_STATE);
+        }
+      } else {
+        setColorState(INITIAL_COLOR_STATE);
+      }
+      setBrightnessState(INITIAL_BRIGHTNESS_STATE);
+      showToast(`✨ Đã phối theo bối cảnh: ${preset.name}!`);
+    }
+  };
+
+  // Handlers cho bộ so sánh A / B (A/B Comparator)
+  const handleSaveToSetA = () => {
+    setOutfitSetA({ outfit: { ...equippedOutfit }, colors: { ...colorState } });
+    showToast('💾 Đã lưu bộ hiện tại vào Bản Phối A!');
+  };
+
+  const handleSaveToSetB = () => {
+    setOutfitSetB({ outfit: { ...equippedOutfit }, colors: { ...colorState } });
+    showToast('💾 Đã lưu bộ hiện tại vào Bản Phối B!');
+  };
+
+  const handleSwitchSlot = (slot: 'A' | 'B') => {
+    setActiveSlot(slot);
+    const target = slot === 'A' ? outfitSetA : outfitSetB;
+    if (target) {
+      setEquippedOutfit(target.outfit);
+      setColorState(target.colors);
+      showToast(`Đã chuyển sang xem Bản Phối ${slot}`);
+    } else {
+      showToast(`Bản Phối ${slot} đang trống. Hãy nhấn "Lưu ${slot}" để lưu bộ hiện tại!`);
+    }
+  };
+
+  const handleToggleABMode = () => {
+    setIsABMode((prev) => {
+      const next = !prev;
+      if (next && !outfitSetA) {
+        // Tự động snapshot bộ hiện tại vào Slot A khi vừa bật
+        setOutfitSetA({ outfit: { ...equippedOutfit }, colors: { ...colorState } });
+      }
+      return next;
+    });
+  };
+
   // Tự động nhận diện giày cao gót để đổi phom chân kiễng chuẩn 1:1, không lòi ngón chân trần
   const isHighHeels =
     equippedOutfit.shoes?.id.includes('sample9') ||
@@ -275,6 +375,21 @@ export function App() {
 
           {/* Quick Header Actions - Icon-first on Mobile */}
           <div className="flex items-center gap-1 sm:gap-space-sm shrink-0">
+            <button
+              id="header-face-avatar-btn"
+              type="button"
+              onClick={() => setIsFaceModalOpen(true)}
+              className={`h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg flex items-center gap-1 text-label-sm font-semibold transition-all cursor-pointer ${
+                userFaceConfig.enabled
+                  ? 'bg-gradient-to-r from-[#ae3022] to-[#c59b27] text-white shadow-xs ring-1 ring-[#eed182]'
+                  : 'bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40'
+              }`}
+              title="Tải ảnh khuôn mặt / Chọn avatar cá nhân hóa"
+            >
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">face</span>
+              <span className="hidden xl:inline">{userFaceConfig.enabled ? 'Mặt Cá Nhân' : 'Gương Mặt'}</span>
+            </button>
+
             <button
               type="button"
               onClick={handleRandomize}
@@ -407,6 +522,9 @@ export function App() {
               </button>
             </div>
 
+            {/* Thanh Cố Vấn Bối Cảnh & Thời Tiết (Audition Gen Z) */}
+            <WeatherOccasionBar onApplyRecommendation={handleApplyWeatherRecommendation} />
+
             {/* ADAPTIVE WORKSPACE: Mobile Studio View vs Desktop 3-Column Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 items-start">
               {/* DESKTOP: LEFT COLUMN (3 cols) | MOBILE: Shows when mobileTab === 'wardrobe' */}
@@ -427,6 +545,7 @@ export function App() {
                   onApplyPreset={handleApplyPreset}
                   onOpenAIStylist={() => setIsAIStylistOpen(true)}
                   isMissingBottom={culturalCheck.isMissingBottom}
+                  onOpenCulturalStory={handleOpenCulturalStory}
                 />
               </div>
 
@@ -449,6 +568,17 @@ export function App() {
                   isMissingBottom={culturalCheck.isMissingBottom}
                   culturalWarningMsg={culturalCheck.warningMessage}
                   onAutoEquipModestBottom={handleAutoEquipModestBottom}
+                  userFaceConfig={userFaceConfig}
+                  onOpenFaceModal={() => setIsFaceModalOpen(true)}
+                  onOpenCulturalStory={handleOpenCulturalStory}
+                  isABMode={isABMode}
+                  onToggleABMode={handleToggleABMode}
+                  outfitSetA={outfitSetA}
+                  outfitSetB={outfitSetB}
+                  onSaveToSetA={handleSaveToSetA}
+                  onSaveToSetB={handleSaveToSetB}
+                  activeSlot={activeSlot}
+                  onSwitchSlot={handleSwitchSlot}
                 />
               </div>
 
@@ -506,6 +636,10 @@ export function App() {
         canvasRef={canvasRef}
         isMissingBottom={culturalCheck.isMissingBottom}
         outfitName={currentPreset?.name || "Cổ Phục Đại Việt"}
+        eraName={getItemCulturalStory(null, currentSetId).era}
+        userFaceConfig={userFaceConfig}
+        colorState={colorState}
+        equippedOutfit={equippedOutfit}
         onAutoEquipModestBottom={handleAutoEquipModestBottom}
       />
 
@@ -517,13 +651,38 @@ export function App() {
         colorState={colorState}
         onApplyPresetWithColors={handleApplyPresetWithColors}
         showToast={showToast}
+        userFaceConfig={userFaceConfig}
       />
 
-      {/* Toast Notification */}
+      {/* Face Upload & Avatar Customization Modal */}
+      <FaceUploadModal
+        isOpen={isFaceModalOpen}
+        onClose={() => setIsFaceModalOpen(false)}
+        currentFaceConfig={userFaceConfig}
+        onApplyFaceConfig={handleApplyFaceConfig}
+      />
+
+      {/* Cultural Heritage Story Modal */}
+      <CulturalStoryModal
+        isOpen={isStoryModalOpen}
+        onClose={() => setIsStoryModalOpen(false)}
+        item={selectedStoryItem}
+        currentSetId={currentSetId}
+      />
+
+      {/* Toast Notification — Smart Icon + Mobile Center */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
-          <div className="bg-[#04152e] text-[#ffdf98] px-4 py-2.5 rounded-xl shadow-xl border border-[#c59b27]/60 flex items-center gap-2 text-xs font-semibold">
-            <span className="material-symbols-outlined text-[18px] text-[#eec14b]">info</span>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 z-50 animate-toast-up">
+          <div className="bg-[#04152e] text-[#ffdf98] pl-3 pr-4 py-2.5 rounded-xl shadow-xl border border-[#c59b27]/60 flex items-center gap-2 text-xs font-semibold whitespace-nowrap">
+            <span className="material-symbols-outlined text-[17px] text-[#eec14b] shrink-0">
+              {toast.includes('Đã mặc') || toast.includes('Đặt lại') || toast.includes('Lưu')
+                ? 'check_circle'
+                : toast.includes('ngẫu nhiên') || toast.includes('casino')
+                ? 'casino'
+                : toast.includes('Thiếu') || toast.includes('cảnh báo')
+                ? 'warning'
+                : 'auto_awesome'}
+            </span>
             <span>{toast}</span>
           </div>
         </div>

@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã phục hồi 100% khả năng sinh ảnh AI độc bản từ Google Stitch theo đúng từng món đồ người dùng phối trên Canvas. Xóa bỏ hoàn toàn cơ chế short-circuit trả ảnh mẫu tĩnh. Cấu hình `maxDuration: 120` trong `vercel.json` để Serverless Function chạy an toàn trọn vẹn tiến trình vẽ của Google Cloud (~45-55s). Build PASS 100% trong 1.59s.
+> **Trạng thái hiện tại**: Đã hoàn thành 100% các yêu cầu của Đề thi Audition: "Việt phục Remix - Phối trang phục truyền thống theo phong cách Gen Z" kèm tính năng Cá nhân hóa khuôn mặt selfie đại diện (Custom Face Avatar) gắn trực tiếp lên 2D Canvas mannequin. Đã qua khâu kiểm thử thực tế `npm run build` (`tsc -b && vite build`) PASS 100% không lỗi (exit code 0). Dev server đang hoạt động tại `http://127.0.0.1:5173/`.
 
 ---
 
@@ -14,6 +14,60 @@
 ---
 
 ## 🔄 LỊCH SỬ CÁC LẦN LÀM VIỆC (TIMELINE / CHANGELOG)
+
+### ⏱️ Phiên 2026-10-04 06:34 | Triển Khai Kế Hoạch Cải Thiện UX/UI & Responsive (Zero AI Slop) - Build 100% Pass
+- **Yêu cầu của User**: "làm plan cải thiện ux ui và reponsive", "cải thiện 0 bị ai slop", phê duyệt tài liệu kế hoạch.
+- **Thực hiện chi tiết**:
+  1. **WeatherOccasionBar Tối Ưu Màn Hình**:
+     - Mặc định ở trạng thái thu gọn (`isExpanded = false`) để tiết kiệm không gian đứng (~100px) trên điện thoại và màn hình nhỏ.
+     - Hiển thị tóm tắt trực quan 2 chip sự kiện & mùa thời tiết ngay trên thanh tiêu đề kể cả khi thu gọn (`WEATHER_SEASONS` + `OCCASIONS`), kèm nút "Phối Nhanh" 1-click tức thì.
+  2. **ColorTuningPanel (Bảng Sắc Phục Cổ)**:
+     - Thêm nút **Sao chép mã HEX** 1-click cạnh ô nhập màu với phản hồi trực quan icon (`check` / `content_copy`).
+     - Bổ sung **Live Swatch preview** hình tròn 20px hiển thị chính xác màu thực tế đang chọn của từng lớp phục trang.
+     - Dọn dẹp các biến/import không sử dụng (`LAYER_MAP`, `zIndex`) đảm bảo TypeScript strict mode 100% sạch.
+  3. **Toast Notification Thông Minh & Tương Thích Mobile**:
+     - Căn giữa màn hình trên mobile (`left-1/2 -translate-x-1/2`), tự động tránh thanh điều hướng tab di động ở đáy.
+     - Tự động nhận diện ngữ cảnh để hiển thị icon thích hợp (`check_circle` khi mặc/đặt lại, `casino` khi ngẫu nhiên, `warning` khi thiếu hạ y, `auto_awesome` khi hoàn tất).
+     - Bổ sung hiệu ứng nảy tự nhiên `animate-toast-up` với cubic-bezier spring physics mượt mà.
+  4. **DressCanvas HUD Controls Nâng Cấp Touch Ergonomics**:
+     - Tăng kích thước phím bấm HUD từ 24-28px lên 32px (`h-8`, `w-7 h-7`), giúp ngón tay thao tác phóng to/thu nhỏ, đặt lại, gương mặt và so sánh A/B chính xác, không bấm nhầm trên màn hình cảm ứng.
+  5. **Hiệu Ứng Toàn Cục (`src/index.css`)**:
+     - Bổ sung các lớp tiện ích CSS thuần: `animate-toast-up` và `skeleton` shimmer loading (không dùng thêm bất kỳ thư viện ngoài nào).
+- **Trạng thái kiểm thử / Build thực tế (Rule 0)**:
+  - Chạy `npm run build` (`tsc -b && vite build`): **Pass 100% (exit code 0)** trong 2.50s (1908 modules, 0 error).
+- **Tuân thủ Rule 8**: Không tự ý mở browser hay gọi `browser_subagent`.
+
+### ⏱️ Phiên 2026-10-03 21:38 | Hoàn Thành 100% Đề Thi Audition: Việt Phục Remix (Gen Z Style) & Cá Nhân Hóa Khuôn Mặt Selfie
+- **Yêu cầu của User**: Triển khai đề thi Audition "Việt phục Remix - Phối trang phục truyền thống theo phong cách Gen Z", hỗ trợ tải ảnh selfie khuôn mặt người dùng để ghép lên nhân vật đại diện và sinh ảnh AI.
+- **Thực hiện chi tiết**:
+  1. **Module 1: Tải & Tinh Chỉnh Khuôn Mặt Chân Dung Đại Diện (`src/components/FaceUploadModal.tsx`)**:
+     - Cho phép upload ảnh selfie cá nhân (kéo thả / chọn file) hoặc chọn 3 preset nhân vật Gen Z (Nữ sinh Gen Z, Nam sinh Gen Z, Nữ sinh Cố Đô).
+     - Hỗ trợ công cụ căn chỉnh trực quan: Tỉ lệ phóng to/thu nhỏ (Zoom), dịch chuyển ngang/dọc (Offset X/Y) và mặt nạ oval bo tròn.
+     - Lưu trữ cấu hình vào `localStorage ('vietstar_custom_face')` để duy trì qua các phiên làm việc.
+  2. **Module 2: Gắn Khuôn Mặt Cá Nhân Lên Mannequin 2D (`src/components/DressCanvas.tsx`)**:
+     - Ghép lớp khuôn mặt tại tọa độ chuẩn (`top: 11.4%`, `left: 50%`, `width: 9.4%`, `height: 6.4%`) với độ sâu `z-[15]` (trên phôi mannequin gốc, nằm dưới cổ áo, tóc và nón/khăn đóng).
+     - Mặt nạ bo tròn mềm mại và chuyển động mượt mà khi thử đồ.
+  3. **Module 3: Điển Tích Văn Hóa & Hộp Thoại Ý Nghĩa Di Sản (`src/components/CulturalStoryModal.tsx` & `src/services/culturalKnowledgeService.ts`)**:
+     - Kho tư liệu văn hóa chi tiết cho từng nhóm cổ phục (Áo Dài hoa sen, Áo Tứ Thân & Yếm Đào, Áo Bà Ba, Áo Ngũ Thân Lập Lĩnh, Áo Nhật Bình hoàng gia, Áo Tấc cung đình, Dân tộc Thái, Chăm Pa...).
+     - Phân tích 4 khía cạnh: Hoàn cảnh lịch sử & triều đại, Ý nghĩa biểu tượng ngũ thường, Quy cách lễ nghi truyền thống, và Gợi ý Gen Z Remix (cách phối hiện đại).
+     - Tích hợp nút xem điển tích trực tiếp ngay trên thẻ món đồ và dấu triện hoàng gia trên Canvas.
+  4. **Module 4: Bộ Cố Vấn Bối Cảnh, Thời Tiết & Sự Kiện (`src/components/WeatherOccasionBar.tsx`)**:
+     - 4 mùa thời tiết (Xuân, Hạ, Thu, Đông) kèm nhiệt độ và gợi ý chất liệu vải (lụa tơ, tơ sống, nhung gấm...).
+     - 6 bối cảnh sự kiện: Kỷ yếu học đường, Tết & du xuân, Lễ hội đình làng, Hỷ sự đám cưới, Cà phê dạo phố Gen Z, Ngoại giao di sản.
+     - Nút "Phối Nhanh" (1-Click) tự động trang bị set cổ phục và màu sắc tương thích tối ưu.
+  5. **Module 5: So Sánh Đối Chiếu Bản Phối A/B (`src/components/DressCanvas.tsx` & `src/App.tsx`)**:
+     - Cho phép lưu nhanh cấu hình phối đồ hiện tại vào Slot A hoặc Slot B.
+     - Nút toggle chuyển đổi nhanh A/B và hiển thị badge HUD trực tiếp trên Canvas để bạn trẻ so sánh hiệu quả thẩm mỹ tức thì.
+  6. **Module 6: Thẻ Lookbook Card Editorial & Tích Hợp Google Stitch AI (`src/components/SnapshotModal.tsx` & `src/services/aiStylistService.ts`)**:
+     - Lookbook Card chuẩn editorial: Huy hiệu người mẫu chân dung, dải mã màu HEX, số lượng món y phục di sản, triện son đỏ "BẢO CHỨNG".
+     - Dịch vụ AI Stylist tự động trích xuất thông tin người mẫu selfie để đưa vào prompt thời trang cho Google Stitch kết xuất poster tạp chí Haute Couture.
+- **Trạng thái kiểm thử / Build thực tế (Rule 0)**:
+  - Chạy `npm run build` (`tsc -b && vite build`): **Pass 100% (exit code 0)** trong 1.77s.
+  - Không có bất kỳ lỗi TypeScript, cú pháp hay build error nào.
+  - Khởi chạy Vite dev server ngầm tại `http://127.0.0.1:5173/`.
+- **Tuân thủ Rule 8**: Không tự ý mở browser hay chụp ảnh màn hình tự kiểm tra. Bàn giao URL dev server để người dùng kiểm tra trực tiếp trên trình duyệt.
+
+---
 
 ### ⏱️ Phiên 2026-10-03 19:05 | Phục Hồi 100% Khả Năng Sinh Ảnh Độc Bản Google Stitch (Sửa Sai Lầm Short-circuit Fake Mẫu, Nâng Timeout Vercel maxDuration=120s)
 - **Yêu cầu của User**: "vừa làm gì vậy phối xong cuối cùng 0 sinh ảnh?" (Kèm ảnh chụp màn hình người dùng phối Yếm đỏ + Váy đụp đen nhưng kết quả lại trả về ảnh mẫu Áo Bà Ba có sẵn).

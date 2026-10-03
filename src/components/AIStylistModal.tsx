@@ -43,6 +43,7 @@ import {
   type OutfitPreset,
   OUTFIT_PRESETS,
 } from "../data/dressroomConfig";
+import type { UserFaceConfig } from "./FaceUploadModal";
 
 interface AIStylistModalProps {
   isOpen: boolean;
@@ -51,6 +52,7 @@ interface AIStylistModalProps {
   colorState: ColorState;
   onApplyPresetWithColors: (preset: OutfitPreset, colors: Record<string, string>) => void;
   showToast: (msg: string) => void;
+  userFaceConfig?: UserFaceConfig;
 }
 
 interface StitchScreenResult {
@@ -68,6 +70,7 @@ export function AIStylistModal({
   colorState,
   onApplyPresetWithColors,
   showToast,
+  userFaceConfig,
 }: AIStylistModalProps) {
   const [activeTab, setActiveTab] = useState<"stylist" | "stitch">("stylist");
   const [selectedOccasionId, setSelectedOccasionId] = useState<string>("tet");
@@ -171,6 +174,8 @@ export function AIStylistModal({
       backgroundPresetId: bgId,
       customBackground: customBg,
       quality,
+      hasCustomFace: Boolean(userFaceConfig?.enabled),
+      customFaceName: userFaceConfig?.name,
     });
     setCustomPrompt(prompt);
   };
