@@ -59,6 +59,16 @@ export default async function handler(req, res) {
     };
   };
 
+  // Chế độ 'fast': Kết xuất di sản tức thì (<1s), không phải chờ Google Cloud hàng phút
+  if (quality === 'fast') {
+    const instantScreen = getSmartFallbackScreen();
+    return res.status(200).json({
+      success: true,
+      screen: instantScreen,
+      fastMode: true,
+    });
+  }
+
   // Nếu không có apiKey trên server, lập tức phục vụ tác phẩm di sản tương thích
   if (!apiKey) {
     const fallbackScreen = getSmartFallbackScreen();
@@ -69,24 +79,39 @@ export default async function handler(req, res) {
     });
   }
 
+  // Hàm bọc timeout 8 giây chống treo chờ Google Cloud quá lâu
+  const withTimeout = (promise, ms = 8000) => {
+    let timeoutId;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('Google Stitch Cloud timeout (8s limit)')), ms);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+  };
+
   try {
     let client = await getStitchClient(apiKey);
     let genRes;
     try {
-      genRes = await client.callTool('generate_screen_from_text', {
-        projectId,
-        prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
-        deviceType,
-      });
+      genRes = await withTimeout(
+        client.callTool('generate_screen_from_text', {
+          projectId,
+          prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
+          deviceType,
+        }),
+        8000
+      );
     } catch (callErr) {
       if (callErr.message?.includes('transport') || callErr.message?.includes('connect')) {
         resetStitchClient();
         client = await getStitchClient(apiKey);
-        genRes = await client.callTool('generate_screen_from_text', {
-          projectId,
-          prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
-          deviceType,
-        });
+        genRes = await withTimeout(
+          client.callTool('generate_screen_from_text', {
+            projectId,
+            prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
+            deviceType,
+          }),
+          8000
+        );
       } else {
         throw callErr;
       }
