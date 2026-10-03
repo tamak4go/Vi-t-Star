@@ -266,27 +266,27 @@ export interface QualityConfig {
 export const QUALITY_CONFIGS: Record<GenerationQuality, QualityConfig> = {
   fast: {
     id: "fast",
-    label: "Siêu Tốc (Instant Lookbook)",
-    badge: "⚡ Tức thì 1-3s",
+    label: "Bản Nháp Nhanh (Draft)",
+    badge: "⚡ Bố cục dọc di động",
     deviceType: "MOBILE",
-    estimatedTime: "~1 - 3s",
-    description: "Kết xuất poster di sản siêu tốc ngay tức thì trong 1-3 giây, không cần chờ đợi.",
+    estimatedTime: "~35 - 50s",
+    description: "Google Stitch kết xuất bố cục thẻ dọc tinh gọn, tối ưu tốc độ để duyệt nhanh ý tưởng phục trang.",
   },
   standard: {
     id: "standard",
-    label: "Tiêu Chuẩn AI (Balanced)",
+    label: "Tiêu Chuẩn HD (Balanced)",
     badge: "🌟 Khuyên dùng",
     deviceType: "DESKTOP",
-    estimatedTime: "~5 - 8s",
-    description: "Bố cục hoàn chỉnh, cân bằng tối ưu giữa độ nét của phục trang và thời gian tạo tác.",
+    estimatedTime: "~45 - 65s",
+    description: "Bố cục tạp chí thời trang hoàn chỉnh, cân bằng tối ưu giữa độ nét của phục trang và thời gian tạo tác.",
   },
   ultra: {
     id: "ultra",
-    label: "Tuyệt Phẩm 8K (Masterpiece)",
-    badge: "👑 Tuyệt phẩm",
+    label: "Tuyệt Phẩm Studio (Masterpiece)",
+    badge: "👑 Tuyệt phẩm 8K",
     deviceType: "DESKTOP",
-    estimatedTime: "~8 - 12s",
-    description: "Độ phân giải tối đa cho triển lãm, dệt gấm thêu ren cực kỳ tỉ mỉ và ánh sáng điện ảnh cao cấp.",
+    estimatedTime: "~65 - 85s",
+    description: "Độ phân giải tối đa cho triển lãm nghệ thuật, dệt gấm thêu ren cực kỳ tỉ mỉ và ánh sáng điện ảnh cao cấp.",
   },
 };
 

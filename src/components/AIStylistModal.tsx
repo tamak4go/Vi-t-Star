@@ -113,28 +113,25 @@ export function AIStylistModal({
     [equippedOutfit, colorState]
   );
 
-  // Giai đoạn xử lý thích ứng theo tốc độ (1s - 8s)
+  // Giai đoạn xử lý thích ứng theo tiến trình Google Cloud (~40-60s)
   const getGenerationStage = (sec: number) => {
-    if (quality === "fast") {
-      if (sec < 1) {
-        return { stage: "Khởi động", msg: "Phân tích y phục & bảng màu..." };
-      }
-      return { stage: "Hoàn tất", msg: "Đang kết xuất poster tức thì..." };
+    if (sec < 10) {
+      return { stage: "Giai đoạn 1/4", msg: "Phân tích cấu trúc phục trang & kết nối Google Stitch..." };
     }
-    if (sec < 3) {
-      return { stage: "Giai đoạn 1/3", msg: "Phân tích cấu trúc y phục & không gian..." };
+    if (sec < 25) {
+      return { stage: "Giai đoạn 2/4", msg: "Gemini Flash phác thảo bố cục tạp chí thời trang..." };
     }
-    if (sec < 6) {
-      return { stage: "Giai đoạn 2/3", msg: "Google Stitch đang phác thảo bố cục nghệ thuật..." };
+    if (sec < 45) {
+      return { stage: "Giai đoạn 3/4", msg: "Google Stitch đang tạo tác chất liệu lụa gấm & ánh sáng..." };
     }
-    return { stage: "Giai đoạn 3/3", msg: "Đang tối ưu độ sắc nét và xuất bản poster..." };
+    return { stage: "Giai đoạn 4/4", msg: "Đang kết xuất poster sắc nét & đồng bộ về Atelier..." };
   };
 
-  const maxEstimated = quality === "fast" ? 3 : quality === "standard" ? 8 : 12;
+  const maxEstimated = quality === "fast" ? 45 : quality === "standard" ? 60 : 75;
   const progressPercent =
     elapsedSeconds < maxEstimated
       ? Math.min(94, Math.floor((elapsedSeconds / maxEstimated) * 94))
-      : Math.min(98, 94 + Math.floor(((elapsedSeconds - maxEstimated) / 6) * 4));
+      : Math.min(98, 94 + Math.floor(((elapsedSeconds - maxEstimated) / 25) * 4));
 
   // Timer đếm giây khi đang sinh ảnh Stitch
   useEffect(() => {
@@ -267,7 +264,7 @@ export function AIStylistModal({
     showToast("ℹ️ Đã dừng chờ kết quả sinh poster.");
   };
 
-  // Xử lý gọi API Stitch sinh ảnh (Tối ưu tốc độ siêu tốc, tự động ngắt nếu mạng trễ quá 10s)
+  // Xử lý gọi API Stitch sinh ảnh (Tạo tác tác phẩm độc bản thực sự qua Google Cloud)
   const handleGenerateStitchScreen = async () => {
     if (!customPrompt.trim()) return;
     const controller = new AbortController();
@@ -277,11 +274,11 @@ export function AIStylistModal({
     const cfg = QUALITY_CONFIGS[quality];
     let isTimedOut = false;
 
-    // Timeout an toàn 10s: nếu máy chủ Google Cloud bị trễ, tự động hoàn tất ngay
+    // Timeout an toàn 100s: phòng ngừa mạng rớt hoàn toàn
     const clientTimeout = setTimeout(() => {
       isTimedOut = true;
       controller.abort();
-    }, 10000);
+    }, 100000);
 
     const desc =
       outfitSourceMode === "custom"
@@ -313,10 +310,13 @@ export function AIStylistModal({
         setGeneratedScreen(data.screen);
         setIsFreshlyGenerated(true);
         setFreshGeneratedDescription(desc);
-        showToast("🎉 Đã hoàn tất tác phẩm poster thời trang!");
+        if (data.screen.isHeritageFallback) {
+          showToast("ℹ️ Google Cloud đang bận, hiển thị tác phẩm tương thích từ kho Atelier.");
+        } else {
+          showToast("🎉 Đã hoàn tất tác phẩm poster thời trang độc bản!");
+        }
         fetchRecentScreens();
       } else {
-        // Fallback tức thì nếu server có thông báo
         const fallbackScreen = recentScreens[0] || {
           id: "heritage-instant",
           name: "heritage-instant",
@@ -326,11 +326,10 @@ export function AIStylistModal({
         setGeneratedScreen(fallbackScreen);
         setIsFreshlyGenerated(true);
         setFreshGeneratedDescription(desc);
-        showToast("🎉 Đã kết xuất poster thời trang di sản thành công!");
+        showToast("✨ AI đang bận kết xuất, vui lòng thử lại sau giây lát!");
       }
     } catch (err: any) {
       if (isTimedOut || err.name === "AbortError") {
-        // Khi bị timeout hoặc hủy: lập tức hiển thị tác phẩm tương thích nhất
         const fallbackScreen = recentScreens[0] || {
           id: "heritage-instant",
           name: "heritage-instant",
@@ -340,7 +339,7 @@ export function AIStylistModal({
         setGeneratedScreen(fallbackScreen);
         setIsFreshlyGenerated(true);
         setFreshGeneratedDescription(desc);
-        showToast("🎉 Đã kết xuất poster thời trang hoàn tất!");
+        showToast("ℹ️ Kết nối mạng kéo dài hơn dự kiến, đã hiển thị tác phẩm tham khảo.");
       } else {
         console.error("Lỗi gọi Stitch API:", err);
         showToast("✨ AI đang bận kết xuất, vui lòng thử lại sau giây lát!");

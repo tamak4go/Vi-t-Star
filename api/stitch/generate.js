@@ -31,6 +31,8 @@ export default async function handler(req, res) {
 
     if (p.includes('nhật bình') || p.includes('nhat binh')) {
       matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-nhat-binh') || matched;
+    } else if (p.includes('yếm') || p.includes('yem') || p.includes('tứ thân') || p.includes('tu than')) {
+      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-ao-tac') || matched;
     } else if (p.includes('ngũ thân') || p.includes('ngu than') || p.includes('lập lĩnh')) {
       matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-ngu-than') || matched;
     } else if (p.includes('áo dài') || p.includes('ao dai') || p.includes('kỉ yếu') || p.includes('ki yeu')) {
@@ -59,16 +61,6 @@ export default async function handler(req, res) {
     };
   };
 
-  // Chế độ 'fast': Kết xuất di sản tức thì (<1s), không phải chờ Google Cloud hàng phút
-  if (quality === 'fast') {
-    const instantScreen = getSmartFallbackScreen();
-    return res.status(200).json({
-      success: true,
-      screen: instantScreen,
-      fastMode: true,
-    });
-  }
-
   // Nếu không có apiKey trên server, lập tức phục vụ tác phẩm di sản tương thích
   if (!apiKey) {
     const fallbackScreen = getSmartFallbackScreen();
@@ -79,11 +71,11 @@ export default async function handler(req, res) {
     });
   }
 
-  // Hàm bọc timeout 8 giây chống treo chờ Google Cloud quá lâu
-  const withTimeout = (promise, ms = 8000) => {
+  // Hàm bọc timeout 90 giây cho Google Cloud hoàn thành tác phẩm tỉ mỉ
+  const withTimeout = (promise, ms = 90000) => {
     let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('Google Stitch Cloud timeout (8s limit)')), ms);
+      timeoutId = setTimeout(() => reject(new Error('Google Stitch Cloud timeout (90s limit)')), ms);
     });
     return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
   };
@@ -98,7 +90,7 @@ export default async function handler(req, res) {
           prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
           deviceType,
         }),
-        8000
+        90000
       );
     } catch (callErr) {
       if (callErr.message?.includes('transport') || callErr.message?.includes('connect')) {
@@ -110,7 +102,7 @@ export default async function handler(req, res) {
             prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
             deviceType,
           }),
-          8000
+          90000
         );
       } else {
         throw callErr;
@@ -127,17 +119,24 @@ export default async function handler(req, res) {
       });
     }
 
-    // Lấy chi tiết screen
-    let screenDetails;
-    try {
-      screenDetails = await client.callTool('get_screen', {
-        name: screenInfo.name,
-      });
-    } catch (detailsErr) {
-      console.warn('[API generate] Could not fetch details for screen:', screenInfo.name);
+    // Ưu tiên screenshotUrl có sẵn từ kết quả sinh của Google Stitch
+    let rawUrl = screenInfo?.screenshot?.downloadUrl;
+    let screenDetails = null;
+
+    if (!rawUrl) {
+      try {
+        screenDetails = await withTimeout(
+          client.callTool('get_screen', {
+            name: screenInfo.name,
+          }),
+          15000
+        );
+        rawUrl = screenDetails?.screenshot?.downloadUrl;
+      } catch (detailsErr) {
+        console.warn('[API generate] Could not fetch details for screen:', screenInfo.name);
+      }
     }
 
-    const rawUrl = screenDetails?.screenshot?.downloadUrl;
     const proxiedUrl = rawUrl
       ? `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`
       : undefined;
@@ -145,12 +144,13 @@ export default async function handler(req, res) {
     const newScreen = {
       id: screenInfo.id || screenInfo.name.split('/').pop(),
       name: screenInfo.name,
-      title: screenDetails?.title || screenInfo.prompt || 'Poster Cổ Phục Việt Nam',
-      screenshotUrl: proxiedUrl || getSmartFallbackScreen().screenshotUrl,
+      title: screenInfo.title || screenDetails?.title || screenInfo.prompt || 'Poster Cổ Phục Việt Nam',
+      screenshotUrl: proxiedUrl || rawUrl || getSmartFallbackScreen().screenshotUrl,
       rawDownloadUrl: rawUrl,
       htmlCode: screenDetails?.htmlCode,
-      width: screenDetails?.width,
-      height: screenDetails?.height,
+      width: screenInfo.width || screenDetails?.width,
+      height: screenInfo.height || screenDetails?.height,
+      isAiGenerated: true,
     };
 
     return res.status(200).json({
