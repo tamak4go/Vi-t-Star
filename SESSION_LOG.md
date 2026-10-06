@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Hoàn thành 100% trọn vẹn bộ tiêu chuẩn đề thi Audition "Việt Phục Remix - Phối Trang Phục Truyền Thống Theo Phong Cách Gen Z": (1) Bộ lọc Vùng Miền / Địa Phương (`HERITAGE_REGIONS` với 6 không gian: Bắc Bộ, Cung đình Huế, Nam Bộ, Tây Bắc, Chăm Pa, Đương đại Gen Z), (2) Hệ thống Cảnh Báo Lệch Chuẩn Văn Hóa Đa Chiều (`CulturalAuthenticityGuard` chấm điểm 0-100, phát hiện xung đột đẳng cấp y phục cung đình vs đường phố, giao thoa vùng miền cọc cạch, vi phạm không gian sự kiện tâm linh), (3) Hộp thoại "Hồ Sơ Đề Án Audition" (`AuditionDossierModal.tsx`) trả lời đầy đủ 4 câu hỏi phương pháp luận thiết kế. Đã kiểm thử `npm run build` PASS 100% (exit code 0, 1909 modules transformed). Dev server chạy tại `http://127.0.0.1:5173/`.
+> **Trạng thái hiện tại**: Đã push Git lên `origin/main` (commit `585dbd0`) và tự động deploy Production thành công 100% trên Vercel: `https://vietstar.vercel.app` (Deployment ID: `dpl_FCRuhaASUa6s4opc9jTAiisYGQFz`, status `● Ready`). API backend `/api/stitch/ping` kết nối Google Stitch Engine hoàn hảo với độ trễ 99ms. Dev server cục bộ chạy tại `http://127.0.0.1:5173/`.
 
 ---
 
