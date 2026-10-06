@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Hoàn thành 100% hệ thống Quét Di Sản & Thẩm Định Động Cho Poster AI (Trích xuất pixel thực tế qua Canvas HTML5, bóc tách cấu trúc theo prompt, loại bỏ ghim giả và nút ép mẫu mannequin). Build xanh 100% (`tsc -b && vite build` trong 1.20s, 1912 modules, 0 error). Dev server đang chạy nền tại `http://127.0.0.1:5173/`, ping Google Stitch Cloud thành công (3384ms).
+> **Trạng thái hiện tại**: Hoàn thành 100% hệ thống Quét Di Sản & Thẩm Định Động Cho Poster AI (Trích xuất pixel thực tế qua Canvas HTML5, bóc tách cấu trúc theo prompt, loại bỏ ghim giả và nút ép mẫu mannequin). Đã commit `2e13976` và push thành công lên `origin/main`. Production Vercel: `https://vietstar.vercel.app` (API `/api/stitch/ping` 414ms). Dev server cục bộ chạy tại `http://127.0.0.1:5173/`.
 
 ---
 
