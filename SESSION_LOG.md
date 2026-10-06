@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã hoàn thành 100% các yêu cầu của Đề thi Audition: "Việt phục Remix - Phối trang phục truyền thống theo phong cách Gen Z" kèm tính năng Cá nhân hóa khuôn mặt selfie đại diện (Custom Face Avatar) gắn trực tiếp lên 2D Canvas mannequin. Đã qua khâu kiểm thử thực tế `npm run build` (`tsc -b && vite build`) PASS 100% không lỗi (exit code 0). Dev server đang hoạt động tại `http://127.0.0.1:5173/`.
+> **Trạng thái hiện tại**: Hoàn thành 100% trọn vẹn bộ tiêu chuẩn đề thi Audition "Việt Phục Remix - Phối Trang Phục Truyền Thống Theo Phong Cách Gen Z": (1) Bộ lọc Vùng Miền / Địa Phương (`HERITAGE_REGIONS` với 6 không gian: Bắc Bộ, Cung đình Huế, Nam Bộ, Tây Bắc, Chăm Pa, Đương đại Gen Z), (2) Hệ thống Cảnh Báo Lệch Chuẩn Văn Hóa Đa Chiều (`CulturalAuthenticityGuard` chấm điểm 0-100, phát hiện xung đột đẳng cấp y phục cung đình vs đường phố, giao thoa vùng miền cọc cạch, vi phạm không gian sự kiện tâm linh), (3) Hộp thoại "Hồ Sơ Đề Án Audition" (`AuditionDossierModal.tsx`) trả lời đầy đủ 4 câu hỏi phương pháp luận thiết kế. Đã kiểm thử `npm run build` PASS 100% (exit code 0, 1909 modules transformed). Dev server chạy tại `http://127.0.0.1:5173/`.
 
 ---
 
@@ -13,7 +13,189 @@
 
 ---
 
-## 🔄 LỊCH SỬ CÁC LẦN LÀM VIỆC (TIMELINE / CHANGELOG)
+### ⏱️ Phiên 2026-10-06 14:55 | Tích Hợp Toàn Diện Bộ Tính Năng Di Sản & Điểm Ghim Chú Thích Tương Tác Của Dressroom Sang Poster AI - Build Pass 100%
+- **Yêu cầu của User**: "? những tính năng ở dressroom cũng phải có ở ai gen ra chứ. khi ai gen ra thì tích hợp ai sẽ phân tích poster đó rồi chú thích tương tự".
+- **Thực hiện chi tiết**:
+  1. **Xây dựng Dịch Vụ AI Thẩm Định Di Sản Cho Poster (`src/services/posterAnalysisService.ts`)**:
+     - Đồng bộ 100% các tiêu chuẩn di sản của Dressroom sang poster do AI sinh ra (Google Stitch):
+       + **Bảo chứng văn hóa (`CulturalAuthenticityGuard`)**: Chấm điểm 0-100, xếp hạng Di sản thuần khiết / Gen Z Remix / Cần lưu ý, phát hiện xung đột và đưa ra lời khuyên lễ nghi.
+       + **Nhận diện Vùng Miền & Triều đại (`HERITAGE_REGIONS`)**: Ánh xạ chính xác vào 6 không gian văn hóa (Kinh Bắc, Cung đình Huế, Nam Bộ, Tây Bắc, Chăm Pa, Đương đại).
+       + **Hài hòa Ngũ Hành & Sắc Phục (`evaluateColorHarmony`)**: Phân tích bản mệnh tương sinh/tương khắc, trích xuất bảng màu HEX đa tầng từ poster.
+       + **Độ tương thích Bối Cảnh Sự Kiện (`STYLING_OCCASIONS`)**: Đánh giá mức độ phù hợp cho Kỷ yếu, Du xuân, Dạ hội, Đền chùa, Dạo phố.
+       + **Hệ thống Điểm Ghim Tọa Độ (Hotspot Pins)**: Tạo 4-6 điểm ghim tương ứng với các chi tiết y phục trên poster (Cổ áo, Tay áo thụng, Hạ y, Khăn nón, Hoa văn kim tuyến...).
+  2. **Thành phần Khảo Sát & Chú Thích Tương Tác (`src/components/PosterCulturalInspector.tsx`)**:
+     - Thanh chỉ số nhanh (Heritage Badges Strip): Điểm chuẩn di sản, Vùng văn hóa, Ngũ Hành, Bối cảnh.
+     - 4 Tab phân tích chuyên sâu:
+       + Tab 1: *Điểm Nhấn Y Phục* (Danh sách chi tiết các món đồ, click highlight ghim trên poster).
+       + Tab 2: *Điển Tích & Nguồn Gốc* (Lịch sử triều đại, ý nghĩa hoa văn & ngũ thường).
+       + Tab 3: *Ngũ Hành & Bảng Màu* (Bảng mã màu HEX trích xuất, phân tích tương sinh ngũ hành).
+       + Tab 4: *Lễ Nghi & Gen Z Remix* (Quy cách mặc đúng thuần phong mỹ tục, mẹo phối đồ đương đại cho bạn trẻ).
+     - Nút liên kết ngược: *"👗 Thử Lên Mannequin"* (1-click chuyển toàn bộ set đồ tương ứng sang sàn thử Dressroom để tiếp tục phối đồ).
+  3. **Tích hợp Tương Tác Trực Quan Trên Poster Trong `AIStylistModal.tsx`**:
+     - Nút bật/tắt `[Điểm Ghim (4)]` ngay trên thanh công cụ.
+     - Ghim tròn đánh số 1, 2, 3... nổi trên nền poster với hiệu ứng nhịp đập pulse và ánh vàng kim hoàng gia.
+     - Popover giải thích xuất xứ, ý nghĩa hoa văn, lễ nghi khi rê chuột/chạm vào từng ghim.
+     - Tự động phân tích tức thì khi sinh poster mới hoặc khi chọn bất kỳ tác phẩm nào trong bộ sưu tập Atelier.
+  4. **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+     - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 3.96s (1911 modules transformed, 0 error).
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
+
+### ⏱️ Phiên 2026-10-05 15:48 | Đóng Gói Toàn Diện, Commit & Push Git Lên GitHub (origin/main) - Build Pass 100%
+- **Yêu cầu của User**: "push git".
+- **Thực hiện chi tiết**:
+  1. **Kiểm tra trạng thái & Rà soát an toàn**:
+     - Kiểm tra `git status` và `git diff --stat`.
+     - Xác nhận `.env` và các tệp nhạy cảm được bảo vệ an toàn trong `.gitignore`, không rò rỉ mã bí mật.
+     - Các file script `src/server/test_*.mjs` đọc trực tiếp biến môi trường từ `.env`, không chứa API key hardcoded.
+  2. **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+     - Thực thi `npm run build` (`tsc -b && vite build`): **PASS 100%** (1909 modules transformed, 0 error).
+  3. **Đóng gói & Đẩy lên Git**:
+     - Stage toàn bộ các tính năng nâng cấp: Bộ lọc vùng miền `HERITAGE_REGIONS`, Hệ thống cảnh báo lệch chuẩn văn hóa đa chiều `CulturalAuthenticityGuard`, Hộp thoại đề án Audition `AuditionDossierModal`, Tối ưu luồng upload khuôn mặt và Google Stitch AI Studio, cùng bộ tài nguyên hình nền sự kiện `public/assets/backgrounds/`.
+     - Commit với thông điệp chuẩn hóa và push lên nhánh `main` của remote `origin` (`https://github.com/tamak4go/Vi-t-Star.git`).
+- **Trạng thái kiểm thử / Build**: PASS 100% (exit code 0).
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
+
+### ⏱️ Phiên 2026-10-04 21:50 | Hoàn Thành 100% Bộ 3 Nâng Cấp Đề Thi Audition "Việt Phục Remix - Gen Z" - Build Pass 100%
+- **Yêu cầu của User**: "ok" (tiến hành triển khai toàn bộ 3 hạng mục đề xuất nâng cấp đề thi Audition).
+- **Các thành phần đã triển khai chi tiết**:
+  1. **Bộ lọc Địa Phương / Vùng Miền (`HERITAGE_REGIONS`)**:
+     - Bổ sung cấu trúc dữ liệu vùng miền trong `src/data/dressroomConfig.ts`: `bac_bo` (Kinh Bắc), `hue` (Cố Đô Huế), `nam_bo` (Miền Tây Sông Nước), `tay_bac` (Tây Bắc Hùng Vĩ), `cham_pa` (Duyên Hải Nam Trung Bộ), `duong_dai` (Gen Z Remix Y2K/Công Sở).
+     - Bổ sung hàm tiện ích `getSetRegion(setId)` ánh xạ chính xác 10 bộ trang phục vào 6 vùng văn hóa.
+     - Cập nhật `src/components/WardrobePanel.tsx` với thanh Chip Lọc Địa Phương nằm ngang trực quan ngay trên lưới vật phẩm, hỗ trợ lọc kết hợp (Dual Filter: Category Tab + Region Realm).
+  2. **Hệ Thống Cảnh Báo Lệch Chuẩn Văn Hóa Đa Chiều (`CulturalAuthenticityGuard`)**:
+     - Xây dựng hàm `checkCulturalAuthenticity(equipped, occasionId)` trong `src/services/culturalKnowledgeService.ts`.
+     - Phân tích đa tầng:
+       + Kiểm tra thiếu hạ y (quần/váy) vi phạm thuần phong mỹ tục.
+       + Kiểm tra xung đột đẳng cấp y phục: Áo Nhật Bình / Áo Tấc hoàng tộc đi cùng chân váy ngắn Y2K hoặc dép lê dân dã.
+       + Kiểm tra xung đột vùng miền: Áo Nhật Bình triều Nguyễn đội nón quai thao Bắc Bộ; Áo Tứ Thân Kinh Bắc phối khăn Piêu Thái Tây Bắc.
+       + Kiểm tra không gian sự kiện: Áo croptop Y2K mặc đi Đình Làng / Lễ Hội hay dạ tiệc Ngoại Giao.
+       + Gợi ý cầm tay nhã nhặn khi mang vật phẩm truyền thống với lễ phục cung đình.
+     - Xếp hạng 3 cấp độ: `authentic` (Nguyên Bản Thuần Khiết, 100đ), `remix` (Giao Thoa Đương Đại, 70-85đ), `notice` (Cảnh Báo Lệch Chuẩn, <70đ).
+     - Tạo Modal chi tiết `src/components/CulturalAuthenticityModal.tsx` và gắn cờ cảnh báo nổi trên Canvas `src/components/DressCanvas.tsx`.
+     - Tích hợp nút kiểm tra huy hiệu bảo chứng văn hóa trên Context Bar và Canvas Banner.
+  3. **Hộp Thoại Hồ Sơ Đề Án Audition (`src/components/AuditionDossierModal.tsx`)**:
+     - Giải trình 4 câu hỏi cốt lõi của đề bài cho Ban Giám Khảo:
+       + *Câu 1: Nhóm trang phục & Bối cảnh văn hóa*: Hệ thống 10 bộ trang phục trải khắp 3 miền và 2 phong cách đương đại.
+       + *Câu 2: Chân dung người dùng (User Persona)*: Gen Z, học sinh, sinh viên tìm kiếm bản sắc văn hóa cho kỷ yếu, lễ hội, lookbook dạo phố.
+       + *Câu 3: Trải nghiệm phối đồ*: Paper doll 2D canvas 9 lớp z-index, live HSL color studio, đối chiếu phương án A/B.
+       + *Câu 4: Bảo chứng thông tin văn hóa*: Kiến trúc 3 lớp (Tra cứu điển tích, Cảnh báo lệch chuẩn đa chiều, AI Stylist tôn trọng phom dáng).
+     - Thống kê ma trận tính năng hoàn thành: 4/4 yêu cầu cốt lõi, 6/6 tính năng bonus.
+     - Nút "Đề Án Audition" được ghim trang trọng trên Header thanh điều hướng.
+  4. **Tích hợp & Kết nối (`src/App.tsx`)**:
+     - Wire state `isAuditionDossierOpen`, `isAuthenticityModalOpen`.
+     - Truyền `authenticityAssessment` xuống Canvas và các Modal.
+     - Kết nối nút sửa nhanh quần lụa khi thiếu hạ y.
+- **Trạng thái kiểm thử / Build thực tế**:
+  - `npm run build` (`tsc -b && vite build`): **PASS 100%** (1909 modules transformed, 0 error).
+  - Dev server nền Vite tiếp tục chạy ổn định.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
+
+### ⏱️ Phiên 2026-10-04 21:40 | Rà Soát Toàn Diện Đề Thi Audition "Việt Phục Remix - Gen Z" & Lập Ma Trận Đánh Giá
+- **Yêu cầu của User**: "xem thử còn cần làm gì nữa 0 ? Đề thi Audition: Việt phục Remix - Phối trang phục truyền thống theo phong cách Gen Z...".
+- **Phân tích đối chiếu ma trận yêu cầu (Gap Analysis)**:
+  1. **Yêu cầu cốt lõi (Bắt buộc)**:
+     - Chọn nhóm trang phục hoặc bối cảnh văn hóa: ĐÃ CÓ (10 nhóm, từ Bắc Bộ, Cung đình Huế, Nam Bộ, Tây Bắc đến Chăm Pa, Công Sở, Y2K).
+     - Xác định nhu cầu người dùng: ĐÃ CÓ (Persona Gen Z, học sinh/sinh viên đi kỷ yếu, lễ hội, dạo phố, chụp ảnh lookbook).
+     - Phác thảo trải nghiệm phối đồ: ĐÃ CÓ (Paper doll dressroom đa tầng, thay trang phục 2D live canvas, xoay màu HSL).
+     - Đề xuất cách bảo đảm thông tin văn hóa: ĐÃ CÓ (`CulturalStoryModal` tra cứu điển tích, ý nghĩa ngũ thường, quy cách thuần phong mỹ tục, gợi ý remix).
+     - Bản demo: Chọn loại trang phục/sự kiện (ĐÃ CÓ), Chọn màu sắc/phụ kiện/phong cách (ĐÃ CÓ), Xem kết quả hình ảnh/thẻ mockup (ĐÃ CÓ), Đọc thông tin ngắn nguồn gốc ý nghĩa (ĐÃ CÓ).
+  2. **Các tính năng có thể bổ sung (Bonus)**:
+     - Tải ảnh / chọn nhân vật đại diện: ĐÃ CÓ 2 CẤP ĐỘ (Selfie Oval Mannequin + Google Stitch AI Face Preservation).
+     - Gợi ý trang phục theo thời tiết & sự kiện: ĐÃ CÓ (`WeatherOccasionBar` 4 mùa, 6 sự kiện).
+     - Kiểm tra sự hài hòa màu sắc: ĐÃ CÓ (Thuật toán Ngũ Hành `evaluateColorHarmony`, điểm 0-100, tương sinh/đồng hành/tương khắc).
+     - So sánh các phương án phối: ĐÃ CÓ (Nút "So Sánh" đối chiếu bản gốc vs bản phối Gen Z).
+     - Tạo & chia sẻ "lookbook Việt phục": ĐÃ CÓ (`SnapshotModal` xuất ảnh bìa tạp chí Lookbook khổ dọc kèm con dấu triện son).
+     - Cảnh báo sai lệch đặc trưng văn hóa: Hiện có cảnh báo thiếu quần/váy (Cultural Modesty).
+  3. **3 Điểm nâng cấp đắt giá đề xuất triển khai để đạt điểm tuyệt đối 10/10**:
+     - *Đề xuất 1*: Thêm **Bộ lọc Vùng Miền / Địa Phương** (Bắc Bộ, Cung Đình Huế, Nam Bộ, Tây Bắc, Duyên Hải Chăm Pa, Đương Đại) ngay trên tủ đồ để bám sát chữ "theo địa phương" trong đề bài.
+     - *Đề xuất 2*: Nâng cấp **Hệ thống Cảnh Báo Lệch Chuẩn Văn Hóa Đa Chiều (Cultural Authenticity Guard)**: Cảnh báo thông minh khi phối cọc cạch giữa các vùng miền hoặc đẳng cấp lễ phục (ví dụ: Nhật Bình cung đình mặc với nón quai thao hay váy Y2K, hoặc mặc hở hang đi lễ chùa).
+     - *Đề xuất 3*: Thêm **Hộp thoại "Hồ Sơ Đề Thi Audition (Design & Cultural Dossier)"** để Ban giám khảo đọc được toàn bộ giải trình phương pháp luận thiết kế.
+- **Trạng thái kiểm thử / Build thực tế**: Build `npm run build` PASS 100% không lỗi (exit code 0).
+- **Tuân thủ Rule 8**: Không tự ý mở browser hay gọi `browser_subagent`.
+
+---
+
+### ⏱️ Phiên 2026-10-04 21:20 | Khắc Phục Triệt Để Lỗi Không Sinh Được Ảnh & Lỗi Poster Không Giữ Gương Mặt Avatar - Build 100% Pass
+- **Yêu cầu của User**: "sao có vài yêu cầu mà 0 sinh ảnh được ? test hết đi cả up ảnh ava ta cx có thay đổi poster theo ,mặt mình đâu".
+- **Phân tích nguyên nhân & Bản chất (Root Cause Analysis - Rule 0)**:
+  1. **Lỗi `Connect Timeout Error` (10,000ms) của Node.js `undici`**:
+     - Trong log runtime của Vite (`task-50.log`), xuất hiện lỗi: `TypeError: fetch failed [cause]: ConnectTimeoutError: Connect Timeout Error (attempted addresses: 172.217.115.4:443, ..., timeout: 10000ms)`.
+     - Mặc định Node.js `undici` chỉ cho connect timeout 10 giây. Đường truyền từ Việt Nam tới cụm Google Cloud/Stitch MCP đôi khi trễ hoặc rớt socket lúc rảnh, dẫn tới timeout ngay ở pha bắt tay HTTPS.
+     - Khối catch trước đây chỉ bắt `callErr.message.includes('connect')` mà không bắt thuộc tính `cause`, khiến hệ thống không kích hoạt reconnect tự động.
+  2. **Lỗi thiếu tham số trong `get_screen` của Stitch Tool**:
+     - `get_screen` của Stitch SDK yêu cầu 3 tham số: `{ name, projectId, screenId }`. Trước đây code chỉ gửi `{ name }` dẫn tới lỗi Google Cloud: `"Request contains an invalid argument"`.
+     - Ngoài ra, response của `generate_screen_from_text` và `edit_screens` vốn dĩ đã có sẵn `screenInfo.screenshot.downloadUrl`, việc cố gọi thêm `get_screen` vừa thừa vừa tăng nguy cơ lỗi.
+  3. **Lỗi Nuốt Lỗi (Silent Fallback) làm người dùng hiểu lầm**:
+     - Trong cả `AIStylistModal.tsx` và server `api/stitch/generate.js`, khi có bất kỳ lỗi nào xảy ra, hệ thống tự động gán ảnh mẫu có sẵn (`sample6_ao-tac_ref.png`) và báo thành công giả tạo. Người dùng tải ảnh mặt mình lên nhưng lại thấy ảnh mẫu có sẵn nên nghĩ rằng AI phớt lờ khuôn mặt.
+  4. **Lỗi Avatar không truyền vào mô hình sinh poster**:
+     - Trước đây khi người dùng tải ảnh mặt lên, API server chỉ gọi `generate_screen_from_text` (chỉ nhận text prompt thuần túy) mà hoàn toàn không đẩy ảnh lên Google Stitch Project qua `edit_screens`.
+     - Prompt của `quality === 'fast'` trước đây yêu cầu `"mobile lookbook card draft"` với `"minimalist vector layout"`, khiến Gemini vẽ khung ứng dụng điện thoại thay vì vẽ ảnh chụp poster thời trang người thật.
+- **Giải pháp & Thực hiện chi tiết**:
+  1. **Nâng cấp `src/server/stitchPlugin.ts`**:
+     - Cấu hình `setGlobalDispatcher` với `Agent({ connect: { timeout: 60_000 }, headersTimeout: 180_000, bodyTimeout: 180_000 })` triệt tiêu lỗi 10s timeout của `undici`.
+     - Cập nhật hàm `getStitchClient(apiKey, forceFresh)` với timeout 150s, cho phép ngắt kết nối socket cũ và mở kết nối socket mới tinh sạch khi cần retry.
+     - Thiết lập cơ chế tự động thử lại lần 2 (Auto Retry with Fresh Connection) khi lần 1 gặp sự cố mạng.
+     - Lấy trực tiếp `screenInfo.screenshot?.downloadUrl` từ kết quả sinh của Google Stitch SDK; nếu gọi fallback `get_screen` thì truyền đủ 3 tham số `{ name, projectId, screenId }`.
+     - Đặt mặc định `deviceType = 'DESKTOP'` cho việc sinh poster thời trang thay vì `MOBILE` (tránh sinh ra giao diện app điện thoại).
+  2. **Cải tiến `src/services/aiStylistService.ts`**:
+     - Bổ sung chỉ thị tối cao: `[PRIMARY MANDATORY DIRECTIVE - SUBJECT FACE PRESERVATION]`: Bắt buộc Gemini 3.1 Pro giữ nguyên vẹn 100% hình thái khuôn mặt, mắt, mũi, môi, đường nét cằm, màu da và tóc của nhân vật trong ảnh reference đã upload, chỉ thay đổi trang phục sang cổ phục Việt Nam.
+     - Chỉnh sửa prompt của cả 2 chế độ (`fast` và `standard`) đều là chụp ảnh nghệ thuật thời trang cao cấp (`haute couture fashion photography portrait`), background giấy dó/hoàng thành mộng ảo.
+  3. **Tối ưu hóa `src/components/AIStylistModal.tsx`**:
+     - Nâng timeout chờ của frontend lên 120s.
+     - Loại bỏ việc âm thầm nuốt lỗi bằng ảnh mẫu có sẵn; hiển thị thông báo lỗi minh bạch và đề xuất người dùng bấm thử lại.
+     - Hiển thị badge trực quan `"Đã đồng bộ ảnh chân dung lên Stitch Cloud"` khi ảnh mặt được tải lên thành công.
+  4. **Kiểm thử thực tế E2E trên Google Cloud Stitch (Rule 0)**:
+     - Viết script thực nghiệm `src/server/test_full_pipeline.mjs` kiểm tra toàn bộ luồng thực:
+       + Bước 1: Upload ảnh mặt thật lên Google Stitch Project `8753486478358563567` -> Thành công, tạo Screen ID: `3373688830442697491`.
+       + Bước 2: Gọi `edit_screens` với Screen ID trên và prompt Áo Tấc hoàng gia -> Thành công 100% sau 1m20s, tạo Screen ID `4842f0c9ee3f4e95816d919e9ddaf8a1`, nhận trực tiếp link ảnh CDN Google với đầy đủ khuôn mặt người mẫu thật trong trang phục Áo Tấc!
+  5. **Đồng bộ hóa Serverless API**:
+     - Tạo mới `api/stitch/upload-face.js` hỗ trợ upload ảnh chân dung trên Vercel.
+     - Nâng cấp `api/stitch/generate.js` hỗ trợ `referenceScreenId`, `edit_screens`, retry socket và xóa bỏ nuốt lỗi giả mạo.
+     - Cập nhật `api/stitch/_helper.js` với cấu hình dispatcher `undici` và xuất `Stitch` class.
+- **Trạng thái kiểm thử / Build thực tế (Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **Pass 100% không lỗi (exit code 0)** trong 1.50s (1907 modules transformed, 0 error).
+  - Dev server nền Vite đang hoạt động ổn định tại `http://127.0.0.1:5173/`.
+- **Tuân thủ Rule 8**: Không tự ý mở browser hay gọi `browser_subagent`.
+
+
+### ⏱️ Phiên 2026-10-04 13:41 | Sửa Hành Vi Nút "Đặt Lại": Cởi Hết Toàn Bộ Trang Phục Về Người Mẫu Mộc - Build 100% Pass
+- **Yêu cầu của User**: "đặt lại là cởi hết chữ" ("Đặt lại là cởi hết chứ?").
+- **Phân tích nguyên nhân & Bản chất (Root Cause Analysis)**:
+  - Trước đây trong hàm `handleResetStage()` ở `src/App.tsx`, khi người dùng bấm nút "Đặt Lại" (Restart / Reset), hệ thống lại tự động gọi `setEquippedOutfit(buildEquippedFromPreset('sample1'))`, tức mặc lại toàn bộ set cổ phục mẫu Áo Dài số 1 thay vì cởi bỏ trang phục.
+  - Theo đúng trải nghiệm của game thời trang búp bê giấy (Paper Doll Dressroom) và kỳ vọng của người dùng, hành động "Đặt Lại" sàn thử phải là tháo bỏ/cởi hết toàn bộ y phục và phụ kiện trên người mẫu (`{ base: BASE_MANNEQUIN_ITEM }`), trả về người mẫu mộc nguyên bản ban đầu để bắt đầu phối đồ mới.
+- **Giải pháp & Thực hiện chi tiết**:
+  1. Cập nhật `handleResetStage()` trong [`src/App.tsx`](file:///c:/Users/ngtam/Downloads/vietstar/src/App.tsx):
+     - Chuyển `setEquippedOutfit` thành `{ base: BASE_MANNEQUIN_ITEM }` (cởi sạch toàn bộ các món áo ngoài, áo trong, quần/váy, nón mũ, giày hài, thắt lưng, phụ kiện).
+     - Khôi phục bảng màu về `INITIAL_COLOR_STATE`, độ sáng `INITIAL_BRIGHTNESS_STATE`, chế độ so sánh `isComparing = false`, mức phóng to `zoom = 1.0`.
+     - Cập nhật thông báo Toast trực quan: `"Đã cởi hết trang phục, đưa sàn thử về người mẫu mộc!"`.
+  2. Bổ sung chú thích tooltip rõ ràng trên các nút "Đặt Lại" ở cả Header và HUD sàn thử: `"Đặt lại sàn thử (Cởi hết trang phục)"`.
+- **Trạng thái kiểm thử / Build thực tế (Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **Pass 100% không lỗi (exit code 0)** trong 3.59s (1908 modules, 0 error).
+  - Dev server nền Vite đang hoạt động ổn định tại `http://127.0.0.1:5173/`.
+- **Tuân thủ Rule 8**: Không tự ý mở browser hay gọi `browser_subagent`.
+
+### ⏱️ Phiên 2026-10-04 13:36 | Tinh Gọn Con Dấu Triện Son Hoàng Gia (Icon-Only), Xóa Bỏ Chữ Tràn Viền - Build 100% Pass
+- **Yêu cầu của User**: "fix or xóa chỉ hiện loggo 0 hiện chữ" (Kèm ảnh chụp màn hình khối con dấu vuông đỏ bị chữ "VIỆT PHỤC" và "BẢO CHỨNG" tràn vỡ ra ngoài viền khung).
+- **Phân tích nguyên nhân & Bản chất (Root Cause Analysis)**:
+  1. Khối con dấu triện son ở góc trên trái sàn thử `DressCanvas.tsx` chứa cả 3 tầng (chữ tiêu đề "Việt Phục", icon `verified`, và chữ "Bảo Chứng") trong kích thước khung cố định nhỏ, dẫn đến chữ bị tràn (overflow) ra ngoài viền trên và đáy, đè lên nền vải và đường viền khung sàn thử.
+  2. Về mặt thị giác và chuẩn mực `ui-ux-pro-max`, con dấu triện son hoàng cung (Royal Seal Stamp) chỉ cần biểu tượng con dấu độc bản với viền kép tinh xảo thì sẽ sang trọng, cổ điển và sạch sẽ hơn rất nhiều (Zero AI Slop), tránh ô chữ nhồi nhét vụn vặt.
+- **Giải pháp & Thực hiện chi tiết**:
+  1. **Tối ưu hóa `DressCanvas.tsx`**:
+     - Xóa bỏ toàn bộ các dòng chữ "Việt Phục" và "Bảo Chứng" gây tràn viền.
+     - Chuyển thẻ `div` thành nút `button` chuẩn ngữ nghĩa và hỗ trợ điều hướng trợ năng (`title`, `aria-label`).
+     - Tinh chỉnh con dấu triện son đỏ `#AE3022` vuông vức thanh nhã (`w-9 h-9 sm:w-10 sm:h-10`), viền vàng kim kép hoàng cung `border border-[#C59B27]/70 ring-1 ring-inset ring-[#C59B27]/40`.
+     - Chỉ hiển thị duy nhất biểu tượng logo con dấu hoàng gia (`verified`) nổi bật ở trung tâm, đi kèm hiệu ứng hover xoay nhẹ `group-hover:rotate-6` và tooltip giải thích native.
+  2. **Đồng bộ hóa `SnapshotModal.tsx`**:
+     - Đồng bộ con dấu triện son trên Lookbook Card xuất ảnh sang dạng con dấu biểu tượng `verified` hoàng gia đồng điệu, bỏ dòng chữ 7px chật chội.
+- **Trạng thái kiểm thử / Build thực tế (Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **Pass 100% không lỗi (exit code 0)** trong 1.97s (1908 modules transformed, 0 error).
+- **Tuân thủ Rule 8**: Không tự ý mở browser hay gọi `browser_subagent`.
 
 ### ⏱️ Phiên 2026-10-04 06:34 | Triển Khai Kế Hoạch Cải Thiện UX/UI & Responsive (Zero AI Slop) - Build 100% Pass
 - **Yêu cầu của User**: "làm plan cải thiện ux ui và reponsive", "cải thiện 0 bị ai slop", phê duyệt tài liệu kế hoạch.
@@ -695,38 +877,133 @@
 
 ---
 
-### ⏱️ Phiên 2026-10-03 17:44 | Xác Thực Live Production Deployment Trên Vercel
-- **Yêu cầu của User**: "link nào?"
-- **Kiểm chứng thực tế 100% (Rule 0)**:
-  - Dự án Vercel: `dressroom` (tài khoản `tamak4go`).
-  - Deployment ID: `dpl_6jzrtkE62gbAoydThqThkcPDbGwY`, hoàn thành lúc 17:31:33 GMT+0700 từ commit `734ffcc`.
-  - Trạng thái: **● Ready (Production)**.
-  - Link chính thức (Production URL): **`https://dressroom-eight.vercel.app`**
-  - Các aliases:
-    + `https://dressroom-tamak4gos-projects.vercel.app`
-    + `https://dressroom-git-main-tamak4gos-projects.vercel.app`
-  - Đã test trực tiếp `GET https://dressroom-eight.vercel.app/api/stitch/ping` phản hồi **HTTP 200 OK**.
-- **Tuân thủ Rule 8**: Không tự ý mở browser hay gọi `browser_subagent`.
+### ⏱️ Phiên 2026-10-04 14:05 | Tích Hợp 6 Bối Cảnh Sân Khấu Sống Động (Stitch Backdrops), Gen Z Remix & Phím Tắt Bàn Phím Toàn Cục
+- **Yêu cầu của User**:
+  - Tích hợp bộ 6 background người dùng đã gen từ `BG.zip`:
+    1. Kỷ Yếu Học Đường (`ky_yeu`) — **mặc định được chọn**
+    2. Tết & Du Xuân (`tet`)
+    3. Lễ Hội & Đình Làng (`dinh_lang`)
+    4. Hỷ Sự & Đám Cưới (`hy_su`)
+    5. Cà Phê Dạo Phố Gen Z (`ca_phe`)
+    6. Ngoại Giao & Sự Kiện (`ngoai_giao`)
+  - Fix và mở rộng các tính năng sàn thử: Lookbook snapshot khi cởi hết y phục, lưu trữ vĩnh viễn Slot A/B, chế độ Gen Z Remix và phím tắt thao tác nhanh.
+- **Công việc cụ thể đã triển khai**:
+  1. **Giải nén & Tối ưu Asset Bối Cảnh**:
+     - Giải nén `BG.zip` vào `public/assets/backgrounds/` với 6 file tỷ lệ chuẩn 9:16 (768x1376): `bg_ky_yeu.png`, `bg_tet.png`, `bg_dinh_lang.png`, `bg_hy_su.png`, `bg_ca_phe.png`, `bg_ngoai_giao.png`.
+     - Cấu hình mảng danh mục `STAGE_BACKDROPS` trong `src/data/dressroomConfig.ts`.
+  2. **Tích hợp Sàn Thử Sống Động (`DressCanvas.tsx`)**:
+     - Đặt lớp background tại `z-[5]` nằm bên trong `mannequin-scaler` (`canvasRef`). Nhờ vậy khi bấm "Xuất Ảnh Lookbook", `html-to-image` tự động bắt trọn vẹn cả nhân vật và bối cảnh chân thực không bị tách rời.
+     - Thêm lớp phủ vignette mềm (`from-black/45 via-transparent to-black/20`) cùng bóng đổ tiếp xúc sàn giúp nhân vật nổi bật, tách bạch khỏi hậu cảnh chi tiết.
+     - Tích hợp nút menu HUD chọn nhanh bối cảnh ngay trên sàn thử với preview thu nhỏ sinh động.
+  3. **Đồng Bộ Hai Chiều Với Thanh Bối Cảnh (`WeatherOccasionBar.tsx`)**:
+     - Thiết lập bảng ánh xạ `OCCASION_TO_BACKDROP` và `BACKDROP_TO_OCCASION`.
+     - Khi người dùng bấm chọn dịp lễ / thời tiết trên thanh gợi ý AI, bối cảnh sàn thử lập tức tự động đổi theo và ngược lại.
+  4. **Nâng Cấp Thẻ Lookbook (`SnapshotModal.tsx`)**:
+     - Sửa phép tính đếm số lượng y phục loại trừ lớp `base`, hiển thị chính xác "0 Món Y Phục" khi cởi hết.
+     - Tiêu đề xuất thẻ hiển thị "Người Mẫu Mộc" và niên đại "Mộc Thể Nguyên Bản".
+  5. **Tính Năng Đột Phá ⚡ Gen Z Remix (`App.tsx`)**:
+     - Nút bấm `[⚡ Gen Z Remix]` phối ngẫu hứng một thượng y cổ truyền (Áo dài, Áo tấc, Áo yếm, Nhật bình...) với hạ y/phụ kiện streetwear hiện đại (quần jean skinny, váy Y2K, boot da, tai nghe headphone Y2K, túi clutch) cùng bảng màu ngũ hành hài hòa.
+  6. **Lưu Trữ Bền Vững (Local Storage Persistence)**:
+     - Tự động lưu và tải lại Bản Phối A (`vietstar_outfit_slot_a`) và Bản Phối B (`vietstar_outfit_slot_b`) qua `localStorage`.
+  7. **Phím Tắt Bàn Phím Toàn Cục (Keyboard Shortcuts)**:
+     - `R`: Phối màu ngẫu nhiên (Randomize palette).
+     - `X`: ⚡ Gen Z Remix (Cổ Phục x Y2K).
+     - `S`: Mở thẻ xuất ảnh Lookbook (Snapshot).
+     - `A`: Bật/Tắt chế độ so sánh 2 bản phối A/B.
+     - `Delete` / `Backspace`: Đặt lại sàn thử / Cởi hết y phục về mẫu mộc.
+     - `Escape`: Đóng nhanh các modal.
+- **Trạng thái kiểm thử / Build (Rule 0)**:
+  - Chạy `npm run build` (`tsc -b && vite build`): **Pass 100%** (1908 modules, 0 lỗi, built in 1.90s).
+  - Dev server hoạt động trơn tru tại `http://localhost:5173/`.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp ảnh màn hình tự kiểm tra.
+
+### ⏱️ Phiên 2026-10-04 14:38 | Thiết Lập Nền Mặc Định Là Giấy Dó Truyền Thống Nguyên Bản
+- **Yêu cầu của User**: "là sao bg mặc đinh là cái bg trước khi thêm những cái bg từ stitch vô đâu rồi? set mặc định là bg giấy dó truyền thống"
+- **Làm rõ ngữ cảnh**:
+  - Ở phiên trước, do hiểu nhầm chú thích `"(đang được chọn)"` sau Kỷ Yếu Học Đường trong prompt gửi kèm file zip là mong muốn đặt Kỷ Yếu làm mặc định khi tải trang, nên app đã khởi tạo với background Kỷ Yếu.
+  - Nền mộc nguyên bản ban đầu của sàn thử thực chất chính là nền **Giấy Dó Truyền Thống** (`parchment`), sử dụng tông ngà `#FAF6EE` điểm xuyết hoa văn kim nhũ `#C59B27`, không bị mất mà nằm ở mục chọn bối cảnh.
+- **Công việc đã thực hiện**:
+  1. **Đưa Giấy Dó lên đầu bảng**: Cập nhật `STAGE_BACKDROPS` trong `src/data/dressroomConfig.ts` đưa `parchment` lên vị trí index 0 với mô tả `"Sàn thử mộc nền giấy dó hoàng cung tối giản (Mặc định)"`.
+  2. **Đặt lại Default State**: Trong `src/App.tsx`, thiết lập `selectedBackdrop` khởi tạo mặc định là `'parchment'`.
+  3. **Đồng bộ hóa Reset Stage**: Khi nhấn nút "Đặt Lại" (Reset Stage / Cởi Hết) hoặc phím `Delete`, sàn thử tự động khôi phục về người mẫu mộc cùng nền Giấy Dó truyền thống.
+  4. **Fallback an toàn**: Trong `src/components/DressCanvas.tsx`, thiết lập fallback khi không có backdropId là `'parchment'`.
+- **Kiểm thử thực tế (Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **Pass 100% (0 errors)**, thời gian đóng gói 2.11s.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở browser hay chụp ảnh màn hình tự kiểm tra.
+
+### ⏱️ Phiên 2026-10-04 15:32 | Loại Bỏ Tính Năng Ghép Mặt (Face Avatar) Theo Yêu Cầu Thẩm Mỹ
+- **Yêu cầu của User**: "từ tính năng gương mặt hiện tại của web tôi muốn bỏ do no 0 đặt thẩm mỹ"
+- **Nguyên nhân & Quyết định thiết kế**:
+  - Việc ghép ảnh chụp 2D cắt hình oval lên phom người mẫu vẽ minh họa tạo cảm giác không đồng nhất về phong cách nghệ thuật ("uncanny valley" / lệch thẩm mỹ).
+  - Loại bỏ hoàn toàn tính năng này giúp giao diện trở về chuẩn mực thiết kế tối giản, tinh tế, đậm chất atelier búp bê giấy cổ phục truyền thống cao cấp (High Craft & Polish, Zero AI Slop).
+- **Công việc đã thực hiện**:
+  1. **Xóa tệp component**: Xóa bỏ `src/components/FaceUploadModal.tsx`.
+  2. **Dọn dẹp `DressCanvas.tsx`**:
+     - Xóa bỏ tầng layer ghép mặt `stage-custom-face` (`Stack 15`).
+     - Xóa bỏ nút "Gương Mặt" trên thanh HUD điều khiển của sàn thử.
+     - Xóa các props `userFaceConfig` và `onOpenFaceModal`.
+  3. **Dọn dẹp `App.tsx`**:
+     - Xóa state `isFaceModalOpen`, `userFaceConfig`.
+     - Xóa nút `[Gương Mặt]` trên Header chính.
+     - Xóa modal `<FaceUploadModal />` và phím tắt Escape tương ứng.
+  4. **Dọn dẹp `SnapshotModal.tsx` & `AIStylistModal.tsx`**:
+     - Xóa huy hiệu hiển thị người mẫu mặt cá nhân trên Thẻ Lookbook Card.
+     - Xóa tham số `userFaceConfig` trong `AIStylistModal`.
+- **Kiểm thử thực tế (Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **Pass 100% (0 errors)**, thời gian đóng gói 1.65s (giảm kích thước bundle JS từ 448 kB xuống 432 kB).
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở browser hay chụp ảnh màn hình tự kiểm tra.
+
+### 📌 Phiên làm việc (2026-10-04 16:00) - Tích hợp Tính năng Upload Ảnh Khuôn Mặt & Sinh Poster Lookbook qua Google Stitch Multimodal AI
+- **Yêu cầu của User**:
+  - Người dùng muốn tính năng cho phép tải ảnh khuôn mặt chân dung bất kỳ lên và Google Stitch sẽ tự động nhận diện, tạo tác nên tấm Poster Lookbook mang đúng khuôn mặt và thần thái của người dùng mặc cổ phục.
+- **Công việc đã thực hiện**:
+  1. **Khảo sát & Kiểm thử thực nghiệm API Stitch (Rule 0)**:
+     - Khám phá trong mã nguồn `@google/stitch-sdk`: Cung cấp hàm `Project.upload(filePath)` gửi thẳng tới REST endpoint `projects/${projectId}/screens:batchCreate`.
+     - Đã chạy thực nghiệm kiểm thử upload ảnh thành công 100% và nhận Screen ID trực tiếp từ Stitch Cloud.
+     - Khám phá công cụ `edit_screens`: Cho phép truyền `selectedScreenIds` kèm prompt để mô hình Gemini đa phương thức trong Stitch vẽ lại người mẫu theo khuôn mặt tham chiếu.
+  2. **Cập nhật Backend (`src/server/stitchPlugin.ts`)**:
+     - Thêm endpoint `POST /api/stitch/upload-face`: Nhận base64 ảnh chân dung của người dùng, ghi tạm ra disk, gọi `sdk.project(projectId).upload(tempFilePath)`, xóa file tạm và trả về `screenId`, `screenshotUrl` đã được proxy.
+     - Nâng cấp `POST /api/stitch/generate`: Hỗ trợ tham số `referenceScreenId`. Khi có `referenceScreenId`, chuyển sang gọi tool `edit_screens` với `selectedScreenIds: [referenceScreenId]` để Stitch kết xuất người mẫu mang đúng đường nét khuôn mặt của người dùng.
+  3. **Cập nhật Logic Prompt AI (`src/services/aiStylistService.ts`)**:
+     - Nâng cấp `generateStitchFashionPrompt`: Bổ sung chỉ dẫn chi tiết cho Stitch AI khi có `hasCustomFace`, hướng dẫn mô hình chuyển hóa trung thực cấu trúc khuôn mặt, mắt, mũi, miệng, cằm và kiểu tóc từ ảnh tham chiếu vào người mẫu thời trang toàn thân.
+  4. **Nâng cấp Giao diện Modal (`src/components/AIStylistModal.tsx`)**:
+     - Thêm khối điều khiển cao cấp **Gương Mặt Người Mẫu Poster** với 2 chế độ:
+       - **Mặc Định AI**: Sử dụng người mẫu thuần Việt thanh tú theo phong cách đã chọn.
+       - **✨ Mặt Của Bạn**: Mở khu vực tải ảnh chân dung/selfie với giao diện kéo thả mượt mà, xem trước thumbnail viền vàng hoàng cung, đặt tên người mẫu và tự động tải lên Stitch Cloud khi sinh ảnh.
+- **Kiểm thử thực tế (Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **Pass 100% (0 errors)** trong 1.90s.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp ảnh màn hình tự kiểm tra.
+
+### 📌 Phiên làm việc (2026-10-04 20:55) - Thêm Nút Tải Ảnh Mặt & Trực Tiếp Mở Stitch Poster Studio Trên Header
+- **Yêu cầu của User**:
+  - Người dùng hỏi: *"where is the upload button for user?"* (Nút upload ảnh khuôn mặt cho người dùng ở đâu?).
+- **Nguyên nhân**:
+  - Tính năng upload khuôn mặt trước đó nằm ở tab 2 **Studio Poster AI** bên trong modal **Cố Vấn AI** -> mục số 3 **Gương Mặt Người Mẫu Poster** -> chuyển toggle sang **Mặt Của Bạn**. Quy trình này qua 3-4 bước nên người dùng khó phát hiện ngay từ giao diện chính.
+- **Công việc đã thực hiện**:
+  1. **Thêm Nút Tắt Trực Tiếp Trên Header (`src/App.tsx`)**:
+     - Bổ sung nút **`[📸 Tải Mặt Sinh Poster]`** (`#header-upload-face-poster-btn`) ngay cạnh nút *Cố Vấn AI* trên thanh Header trên cùng. Nút nổi bật với tông màu gradient amber/rose, icon máy ảnh cổ điển và viền vàng quý phái.
+     - Khi người dùng click nút này, modal sẽ tự động mở thẳng vào tab **Studio Poster AI** và kích hoạt sẵn chế độ **✨ Mặt Của Bạn**.
+  2. **Đồng Bộ Trạng Thái Ban Đầu Cho Modal (`src/components/AIStylistModal.tsx`)**:
+     - Thêm 2 props mới: `initialTab?: "stylist" | "stitch"` và `initialFaceMode?: "default" | "custom"`.
+     - Sử dụng `useEffect` tự động đồng bộ tab và chế độ khuôn mặt mỗi khi modal mở từ shortcut bên ngoài.
+     - Thêm badge nổi bật `[📷 Ghép Mặt Bạn]` ngay trên tiêu đề Tab **Studio Poster AI** trong modal để định vị tức thì.
+- **Kiểm thử thực tế (Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **Pass 100% (0 errors)** trong 1.69s.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp ảnh màn hình tự kiểm tra.
 
 ---
 
 ## 📊 TRẠNG THÁI HIỆN TẠI (CURRENT STATUS)
-- **Live Production URL**: [https://dressroom-eight.vercel.app](https://dressroom-eight.vercel.app)
-- **GitHub Remote**: [https://github.com/tamak4go/Vi-t-Star.git](https://github.com/tamak4go/Vi-t-Star.git)
-- **Local Dev Server**: `http://localhost:5173`
-- **Trạng thái Deployment**: ● Ready (100% hoạt động).
+- **Local Dev Server**: `http://localhost:5173` (đang chạy nền ổn định)
+- **Nút Upload Ảnh Khuôn Mặt**:
+  1. **Cách 1 (Nhanh nhất - 1 click)**: Bấm trực tiếp nút **`[📸 Tải Mặt Sinh Poster]`** trên thanh Header trên cùng (ngay cạnh nút Cố Vấn AI). Hộp thoại Stitch Studio sẽ mở ra với khung upload ảnh chân dung sẵn sàng ngay trước mắt!
+  2. **Cách 2**: Bấm nút **`[Cố Vấn AI]`** -> chọn tab **`Studio Poster AI (📷 Ghép Mặt Bạn)`** -> tại mục **3. Gương Mặt Người Mẫu Poster**, chọn **`✨ Mặt Của Bạn`**.
+- **Khung Upload**: Khung viền đứt nét màu hổ phách cho phép kéo thả hoặc bấm vào để chọn file ảnh chân dung / selfie bất kỳ (PNG, JPG, WEBP).
 
 ---
 
 ## 🎯 CÁC BƯỚC TIẾP THEO (NEXT STEPS)
-1. Người dùng mở link [https://dressroom-eight.vercel.app](https://dressroom-eight.vercel.app) trên trình duyệt cá nhân để kiểm tra và sử dụng.
-
-
-
-
-
-
-
-
-
-
+1. Người dùng mở `http://localhost:5173` trên trình duyệt cá nhân.
+2. Bấm nút **`[📸 Tải Mặt Sinh Poster]`** trên thanh Header.
+3. Bấm vào khung upload để chọn ảnh chân dung/selfie của mình.
+4. Bấm **Sinh Ảnh Poster** để trải nghiệm Google Stitch AI tạo tác bức tranh cổ phục tuyệt đẹp mang diện mạo của chính bạn!

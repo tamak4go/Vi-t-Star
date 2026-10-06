@@ -1,10 +1,11 @@
 // src/components/DressCanvas.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   BASE_MANNEQUIN_ITEM,
   LAYER_INSPECTOR_ORDER,
   LAYER_MAP,
   REFERENCE_FULL_SAMPLE,
+  STAGE_BACKDROPS,
   type BrightnessState,
   type ColorState,
   type EquippedOutfit,
@@ -12,7 +13,6 @@ import {
   type WardrobeItem,
 } from '../data/dressroomConfig';
 import { recolorGarment } from '../services/recolorService';
-import type { UserFaceConfig } from './FaceUploadModal';
 
 export interface DressCanvasProps {
   equippedOutfit: EquippedOutfit;
@@ -32,8 +32,6 @@ export interface DressCanvasProps {
   culturalWarningMsg?: string;
   onAutoEquipModestBottom?: () => void;
   // Audition Remix Features:
-  userFaceConfig?: UserFaceConfig;
-  onOpenFaceModal?: () => void;
   onOpenCulturalStory?: (item: WardrobeItem | null) => void;
   isABMode?: boolean;
   onToggleABMode?: () => void;
@@ -43,7 +41,14 @@ export interface DressCanvasProps {
   onSaveToSetB?: () => void;
   activeSlot?: 'A' | 'B';
   onSwitchSlot?: (slot: 'A' | 'B') => void;
+  // Bối cảnh sàn diễn sống động:
+  backdropId?: string;
+  onSelectBackdrop?: (backdropId: string) => void;
+  // Cảnh báo lệch chuẩn văn hóa:
+  onOpenAuthenticityModal?: () => void;
+  authenticityNoticeCount?: number;
 }
+
 
 interface RecoloredLayerProps {
   item: WardrobeItem;
@@ -118,8 +123,6 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
   isMissingBottom,
   culturalWarningMsg,
   onAutoEquipModestBottom,
-  userFaceConfig,
-  onOpenFaceModal,
   onOpenCulturalStory,
   isABMode,
   onToggleABMode,
@@ -129,7 +132,28 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
   onSaveToSetB,
   activeSlot = 'A',
   onSwitchSlot,
+  backdropId = 'parchment',
+  onSelectBackdrop,
+  onOpenAuthenticityModal,
+  authenticityNoticeCount = 0,
 }) => {
+
+  const [isBackdropOpen, setIsBackdropOpen] = useState(false);
+  const backdropMenuRef = useRef<HTMLDivElement>(null);
+
+  // Đóng menu khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (backdropMenuRef.current && !backdropMenuRef.current.contains(e.target as Node)) {
+        setIsBackdropOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentBackdrop = STAGE_BACKDROPS.find((b) => b.id === (backdropId || 'parchment')) || STAGE_BACKDROPS[0];
+
   return (
     <section className="flex flex-col items-center w-full">
       {/* Stage Frame Box */}
@@ -173,24 +197,67 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
               </button>
             )}
 
-            {/* Custom Face Avatar Button */}
-            {onOpenFaceModal && (
-              <button
-                id="open-face-modal-btn"
-                type="button"
-                onClick={onOpenFaceModal}
-                className={`h-8 px-2.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer ${
-                  userFaceConfig?.enabled
-                    ? 'bg-gradient-to-r from-[#AE3022] to-[#C59B27] text-white shadow-xs'
-                    : 'bg-surface-container-high text-primary hover:bg-surface-container'
-                }`}
-                title="Tải ảnh khuôn mặt / Chọn avatar cá nhân hóa"
-              >
-                <span className="material-symbols-outlined text-[16px]">face</span>
-                <span className="hidden sm:inline">
-                  {userFaceConfig?.enabled ? 'Mặt Cá Nhân' : 'Gương Mặt'}
-                </span>
-              </button>
+            {/* Backdrop Switcher Button */}
+            {onSelectBackdrop && (
+              <div className="relative" ref={backdropMenuRef}>
+                <button
+                  id="toggle-backdrop-btn"
+                  type="button"
+                  onClick={() => setIsBackdropOpen(!isBackdropOpen)}
+                  className={`h-8 px-2 sm:px-2.5 rounded-lg text-[11px] font-semibold flex items-center gap-1 transition-all cursor-pointer border ${
+                    currentBackdrop?.src
+                      ? 'bg-[#1a2a44] text-[#eed182] border-[#c59b27]/60 shadow-xs'
+                      : 'bg-surface-container-high text-primary border-outline-variant/30 hover:bg-surface-container'
+                  }`}
+                  title="Thay đổi bối cảnh sàn diễn"
+                >
+                  <span className="text-[13px]">{currentBackdrop?.icon || '🖼️'}</span>
+                  <span className="hidden md:inline">{currentBackdrop?.shortName || 'Bối Cảnh'}</span>
+                  <span className="material-symbols-outlined text-[13px] text-outline">
+                    {isBackdropOpen ? 'expand_less' : 'expand_more'}
+                  </span>
+                </button>
+
+                {isBackdropOpen && (
+                  <div
+                    id="backdrop-dropdown-popup"
+                    className="absolute top-full left-0 mt-1 z-50 w-56 sm:w-60 bg-surface-container-lowest rounded-xl shadow-xl border border-[#C59B27]/40 p-1.5 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md"
+                  >
+                    <div className="px-2 py-1 text-[10px] font-bold text-outline uppercase tracking-wider border-b border-outline-variant/20 flex items-center justify-between">
+                      <span>Bối Cảnh Sàn Diễn</span>
+                      <span className="text-[#AE3022] font-mono text-[9.5px]">7 Bối Cảnh</span>
+                    </div>
+                    {STAGE_BACKDROPS.map((bg) => {
+                      const isSelected = bg.id === (backdropId || 'parchment');
+                      return (
+                        <button
+                          key={bg.id}
+                          type="button"
+                          onClick={() => {
+                            onSelectBackdrop(bg.id);
+                            setIsBackdropOpen(false);
+                          }}
+                          className={`w-full px-2 py-1.5 rounded-lg text-left text-[11px] font-medium flex items-center justify-between transition-colors cursor-pointer ${
+                            isSelected
+                              ? 'bg-[#1a2a44] text-[#eed182] font-bold shadow-xs'
+                              : 'hover:bg-surface-container text-primary'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="text-[14px] shrink-0">{bg.icon}</span>
+                            <span className="truncate">{bg.name}</span>
+                          </div>
+                          {isSelected && (
+                            <span className="material-symbols-outlined text-[14px] text-[#eed182] shrink-0">
+                              check
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Reset Stage button (Icon-first) */}
@@ -292,26 +359,46 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
           {/* Traditional Parchment Pattern subtle watermark */}
           <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(#C59B27_0.75px,transparent_0.75px)] [background-size:16px_16px]" />
 
-          {/* Archaic Dynasty Red Seal Stamp (Top Left) - Clickable to open Cultural Story */}
-          <div
+          {/* Archaic Dynasty Red Seal Stamp (Top Left) - Clickable to open Cultural Story (Icon-only, no text) */}
+          <button
+            type="button"
             onClick={() => onOpenCulturalStory?.(null)}
-            className="absolute top-3 left-3 z-50 flex flex-col items-center justify-center w-13 h-13 rounded-sm bg-secondary text-surface-container-lowest p-1 shadow-md border border-[#c59b27]/40 cursor-pointer hover:scale-105 transition-transform"
-            title="Nhấn để xem điển tích & ý nghĩa văn hóa của bộ trang phục này"
+            className="absolute top-3 left-3 z-50 w-9 h-9 sm:w-10 sm:h-10 rounded-md bg-[#AE3022] text-[#FAF6EE] flex items-center justify-center shadow-md border border-[#C59B27]/70 ring-1 ring-inset ring-[#C59B27]/40 hover:scale-105 hover:brightness-110 active:scale-95 transition-all cursor-pointer group"
+            title="Xem điển tích & ý nghĩa văn hóa của bộ trang phục này (Bảo chứng Việt phục)"
+            aria-label="Xem điển tích & ý nghĩa văn hóa trang phục"
           >
-            <span className="font-headline-sm text-[9.5px] leading-tight text-center uppercase tracking-widest font-bold">
-              Việt Phục
+            <span className="material-symbols-outlined text-[20px] sm:text-[22px] text-[#FAF6EE] drop-shadow-xs group-hover:rotate-6 transition-transform">
+              verified
             </span>
-            <span className="material-symbols-outlined text-[17px] my-[-2px]">verified</span>
-            <span className="text-[7.5px] tracking-tighter uppercase font-semibold">Bảo Chứng</span>
-          </div>
+          </button>
 
           {/* Zoom & Pan Layer Container */}
           <div
             ref={canvasRef}
             id="mannequin-scaler"
-            className="relative w-full h-full transition-transform duration-200 origin-center flex items-center justify-center"
+            className="relative w-full h-full transition-transform duration-200 origin-center flex items-center justify-center overflow-hidden"
             style={{ transform: `scale(${zoom})` }}
           >
+            {/* Stack 5: Stage Backdrop Image (Bối Cảnh Sàn Diễn 9:16) */}
+            {currentBackdrop?.src ? (
+              <div
+                id="stage-backdrop-container"
+                className="absolute inset-0 w-full h-full pointer-events-none select-none z-[5] overflow-hidden"
+              >
+                <img
+                  src={currentBackdrop.src}
+                  alt={currentBackdrop.name}
+                  className="w-full h-full object-cover transition-opacity duration-300"
+                />
+                {/* Lớp phủ điện ảnh & bóng nền chân mannequin */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-black/20" />
+                <div className="absolute bottom-[3.5%] left-1/2 -translate-x-1/2 w-48 h-7 bg-black/55 rounded-full blur-md" />
+              </div>
+            ) : (
+              /* Nền hoa văn giấy dó cổ mộc truyền thống */
+              <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(#C59B27_0.75px,transparent_0.75px)] [background-size:16px_16px] z-[5]" />
+            )}
+
             {/* Stack 10: Base Mannequin (Undergarment) - Luôn hiển thị ở tầng đáy */}
             <img
               id="stage-layer-base"
@@ -319,33 +406,6 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
               alt="Người Mẫu Cơ Bản"
               className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-[10]"
             />
-
-            {/* Stack 15: Custom Face Avatar Layer - Nằm trên da mẫu mộc, dưới tóc/mũ/khăn/kiềng cổ */}
-            {userFaceConfig?.enabled && userFaceConfig.src && (
-              <div
-                id="stage-custom-face"
-                className="absolute pointer-events-none select-none z-[15] overflow-hidden"
-                style={{
-                  top: '11.4%',
-                  left: '50%',
-                  width: '9.4%',
-                  height: '6.4%',
-                  transform: `translate(-50%, 0) translate(${userFaceConfig.offsetX * 0.25}px, ${userFaceConfig.offsetY * 0.25}px)`,
-                  borderRadius: '50%',
-                  maskImage: 'radial-gradient(circle at center, black 65%, transparent 100%)',
-                  WebkitMaskImage: 'radial-gradient(circle at center, black 65%, transparent 100%)',
-                }}
-              >
-                <img
-                  src={userFaceConfig.src}
-                  alt="Custom Face Avatar"
-                  className="w-full h-full object-cover"
-                  style={{
-                    transform: `scale(${userFaceConfig.scale})`,
-                  }}
-                />
-              </div>
-            )}
 
             {/* Render các tầng y phục theo thứ tự Z-Index của LAYER_INSPECTOR_ORDER */}
             {LAYER_INSPECTOR_ORDER.map((category) => {
@@ -414,8 +474,29 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
               )}
             </div>
           )}
+
+          {/* Floating Cultural Authenticity Notice Pill (Khi có cảnh báo lệch chuẩn văn hóa khác) */}
+          {!isMissingBottom && authenticityNoticeCount > 0 && onOpenAuthenticityModal && (
+            <button
+              type="button"
+              id="cultural-authenticity-pill"
+              onClick={onOpenAuthenticityModal}
+              className="absolute bottom-3 left-3 right-3 z-40 animate-in fade-in slide-in-from-bottom-2 duration-200 bg-[#2d1b1a]/95 text-amber-100 p-2 sm:p-2.5 rounded-xl border border-amber-500/70 shadow-[0_4px_16px_rgba(217,119,6,0.35)] backdrop-blur-xs flex items-center justify-between gap-2 hover:bg-[#3d2524] transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-1.5 text-xs text-left truncate">
+                <span className="material-symbols-outlined text-[17px] text-amber-400 shrink-0">info</span>
+                <span className="truncate text-[10.5px] sm:text-[11.5px] font-medium text-amber-100">
+                  Phát hiện {authenticityNoticeCount} điểm cần lưu ý về văn hóa khi phối đồ
+                </span>
+              </div>
+              <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40 shrink-0 hover:bg-amber-500/30">
+                Xem Lời Khuyên
+              </span>
+            </button>
+          )}
         </div>
       </div>
     </section>
   );
 };
+

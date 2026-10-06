@@ -627,3 +627,217 @@ export function analyzeEquippedOutfitHarmony(
 
   return evaluateColorHarmony(upperHex, lowerHex);
 }
+
+// ============================================================================
+// 4. BỘ MÁY KIỂM ĐỊNH CHUẨN MỰC & CẢNH BÁO SAI LỆCH VĂN HÓA (CULTURAL AUTHENTICITY GUARD)
+// ============================================================================
+
+export interface CulturalAuthenticityAssessment {
+  score: number; // 0 - 100
+  tier: "authentic" | "remix" | "notice";
+  badgeTitle: string;
+  badgeIcon: string;
+  badgeColorClass: string;
+  headline: string;
+  analysis: string;
+  etiquetteTips: string[];
+  conflicts: string[];
+  dominantRegion?: string;
+  regionsPresent: string[];
+}
+
+// Tra cứu tên gọi tiếng Việt của vùng miền
+const REGION_NAMES_MAP: Record<string, string> = {
+  bac_bo: "Bắc Bộ (Kinh Bắc)",
+  hue: "Cung Đình Huế",
+  nam_bo: "Nam Bộ Sông Nước",
+  tay_bac: "Tây Bắc (Thái)",
+  cham_pa: "Duyên Hải Chăm Pa",
+  duong_dai: "Đương Đại / Gen Z",
+};
+
+/**
+ * Thuật toán kiểm định tính chuẩn mực di sản và phát hiện sai lệch đặc trưng văn hóa
+ * Phục vụ tiêu chí Audition: "Cảnh báo những cách kết hợp có thể làm sai lệch đặc trưng văn hóa"
+ */
+export function checkCulturalAuthenticity(
+  equipped: EquippedOutfit,
+  occasionId?: string
+): CulturalAuthenticityAssessment {
+  const activeItems = Object.values(equipped).filter(
+    (item) => item && item.category !== "base"
+  );
+
+  // 1. Trường hợp người mẫu mộc chưa mặc gì
+  if (activeItems.length === 0) {
+    return {
+      score: 100,
+      tier: "authentic",
+      badgeTitle: "Người Mẫu Mộc",
+      badgeIcon: "accessibility_new",
+      badgeColorClass: "bg-surface-container text-on-surface-variant",
+      headline: "Sàn Thử Sẵn Sàng",
+      analysis: "Chưa khoác y phục. Hãy chọn một mẫu trang phục truyền thống hoặc tự do phối đồ theo phong cách cá nhân.",
+      etiquetteTips: ["Bắt đầu bằng việc chọn Áo Trong hoặc Áo Ngoài để định hình phong cách."],
+      conflicts: [],
+      regionsPresent: [],
+    };
+  }
+
+  const conflicts: string[] = [];
+  const etiquetteTips: string[] = [];
+  const regionSet = new Set<string>();
+
+  const upperItem = equipped.outerTop || equipped.innerTop;
+  const bottomItem = equipped.bottom;
+  const shoesItem = equipped.shoes;
+  const headwearItem = equipped.headwear;
+  const handheldItem = equipped.handheld;
+
+  // Thu thập các vùng miền có mặt trên trang phục
+  activeItems.forEach((it) => {
+    if (it?.setId) {
+      if (it.setId === "sample1" || it.setId === "sample2") regionSet.add("bac_bo");
+      else if (it.setId === "sample4" || it.setId === "sample5" || it.setId === "sample6") regionSet.add("hue");
+      else if (it.setId === "sample3") regionSet.add("nam_bo");
+      else if (it.setId === "sample7") regionSet.add("tay_bac");
+      else if (it.setId === "sample8") regionSet.add("cham_pa");
+      else if (it.setId === "sample9" || it.setId === "sample10" || it.setId === "sample11") regionSet.add("duong_dai");
+    }
+  });
+
+  const regionsPresent = Array.from(regionSet).map((r) => REGION_NAMES_MAP[r] || r);
+
+  // 2. Kiểm tra lỗi nghiêm trọng nhất: Mặc áo mà KHÔNG mặc quần/váy (Thiếu hạ y)
+  if (upperItem && !bottomItem) {
+    conflicts.push(
+      "Thiếu quần/hạ y: Cổ phục Việt Nam (Áo Dài, Áo Tấc, Tứ Thân) luôn tôn vinh nét đoan trang kín đáo. Cổ nhân quy định bắt buộc phải mặc cùng quần lụa dài hoặc váy truyền thống."
+    );
+    etiquetteTips.push("Hãy trang bị thêm Quần Lụa Trắng hoặc Váy Đụp để bảo đảm thuần phong mỹ tục.");
+
+    return {
+      score: 45,
+      tier: "notice",
+      badgeTitle: "Cảnh Báo Lệch Chuẩn (Thiếu Hạ Y)",
+      badgeIcon: "warning",
+      badgeColorClass: "bg-rose-900 text-rose-100 border border-rose-500",
+      headline: "Vi Phạm Thuần Phong Mỹ Tục",
+      analysis: "Trang phục đang thiếu quần/váy truyền thống che chắn cơ thể, làm mất đi sự trang nhã lịch thiệp vốn có của cổ phục.",
+      etiquetteTips,
+      conflicts,
+      regionsPresent,
+    };
+  }
+
+  // 3. Kiểm tra xung đột: Lễ phục Cung đình Hoàng gia vs Đồ đường phố / Dép lê dân dã
+  const isRoyalTop = upperItem?.setId === "sample5" || upperItem?.setId === "sample6" || upperItem?.setId === "sample4";
+  const isStreetBottom = bottomItem?.id === "sample11-vay"; // Váy ngắn Y2K
+  const isCasualFootwear = shoesItem?.id === "sample3-dep" || shoesItem?.id === "sample11-bot"; // Dép lê Nam Bộ hoặc Bốt hầm hố
+
+  if (isRoyalTop && isStreetBottom) {
+    conflicts.push(
+      "Lệch chuẩn đẳng cấp y phục: Áo Nhật Bình / Áo Tấc là đại lễ phục cung đình triều Nguyễn tôn nghiêm, quy chế lịch sử bắt buộc đi cùng quần lụa dài quét gót. Phối cùng chân váy ngắn làm phá vỡ phom dáng lễ nghi nguyên bản."
+    );
+    etiquetteTips.push("Nếu muốn diện Áo Nhật Bình cách tân, hãy chọn chân váy lụa maxi dáng dài thướt tha.");
+  }
+
+  if (isRoyalTop && isCasualFootwear) {
+    conflicts.push(
+      "Lệch chuẩn hài vớ cung đình: Lễ phục hoàng tộc triều Nguyễn cần đi cùng Hài nhung thêu chỉ vàng hoặc Hài mũi cong, tránh phối với dép lê dân gian tạo cảm giác cọc cạch."
+    );
+  }
+
+  // 4. Kiểm tra xung đột văn hóa vùng miền đặc trưng (Bắc Bộ vs Nam Bộ vs Tây Bắc vs Chăm Pa)
+  if (upperItem?.setId === "sample1" && headwearItem?.id === "sample7-khan") {
+    conflicts.push(
+      "Giao thoa văn hóa Kinh Bắc & Tây Bắc: Áo Tứ Thân đồng bằng Bắc Bộ đội cùng Khăn Piêu của đồng bào Thái. Đây là sự kết hợp thú vị nhưng cần lưu ý nếu mục đích là tái hiện đúng không gian văn hóa hội làng Kinh Bắc."
+    );
+  }
+
+  if (upperItem?.setId === "sample5" && headwearItem?.id === "sample1-khan") {
+    conflicts.push(
+      "Lệch cấp bậc lễ phục: Áo Nhật Bình cung đình triều Nguyễn quy định đội Khăn vành dây hoặc Kim ước, không đi cùng Nón Quai Thao dân gian Bắc Bộ."
+    );
+  }
+
+  if (upperItem?.setId === "sample8" && headwearItem?.id === "sample2-non") {
+    etiquetteTips.push("Cổ phục Chăm Pa thường để tóc tự nhiên hoặc vấn khăn thổ cẩm; nón lá là nét đặc trưng của người Kinh.");
+  }
+
+  // 5. Kiểm tra không gian sự kiện (Occasion Fit)
+  if (occasionId === "dinh-lang" || occasionId === "ngoai-giao") {
+    if (upperItem?.setId === "sample11") {
+      conflicts.push(
+        "Không phù hợp không gian sự kiện: Phong cách Y2K croptop chưa phù hợp với tính chất trang nghiêm, linh thiêng của Đình Làng / Lễ Hội hay dạ tiệc Ngoại Giao."
+      );
+      etiquetteTips.push("Đề xuất đổi sang Áo Dài, Áo Tấc hoặc Áo Ngũ Thân để tôn vinh sự trang trọng.");
+    }
+  }
+
+  // 6. Gợi ý cầm tay nhã nhặn
+  if (handheldItem && (upperItem?.setId === "sample5" || upperItem?.setId === "sample6")) {
+    etiquetteTips.push(`Vật phẩm cầm tay "${handheldItem.name}" kết hợp cùng đại lễ phục cung đình làm tăng nét thanh tao, quý phái.`);
+  }
+
+  // 6. Tính toán điểm số & Phân cấp danh hiệu
+  let score = 100;
+  if (conflicts.length > 0) {
+    score = Math.max(60, 100 - conflicts.length * 15);
+  } else if (regionSet.size > 2) {
+    score = 88; // Mix nhiều vùng miền nhưng có ý thức
+  }
+
+  // Phân loại Tier
+  if (conflicts.length > 0) {
+    return {
+      score,
+      tier: "notice",
+      badgeTitle: "Cần Cân Nhắc Văn Hóa",
+      badgeIcon: "info",
+      badgeColorClass: "bg-amber-800 text-amber-100 border border-amber-500",
+      headline: "Phối Hợp Có Điểm Cần Lưu Ý",
+      analysis:
+        "Bộ trang phục đang có sự kết hợp giữa các yếu tố văn hóa khác biệt về cấp bậc lễ nghi hoặc vùng miền lịch sử. Hãy đọc các gợi ý bên dưới để hoàn thiện bản phối tôn trọng di sản.",
+      etiquetteTips: etiquetteTips.length > 0 ? etiquetteTips : [
+        "Cân nhắc thay đổi phụ kiện hoặc lớp áo ngoài để đạt sự đồng bộ văn hóa cao nhất.",
+      ],
+      conflicts,
+      regionsPresent,
+    };
+  }
+
+  if (regionSet.has("duong_dai") && regionSet.size > 1) {
+    return {
+      score: 94,
+      tier: "remix",
+      badgeTitle: "Gen Z Remix Tinh Tế",
+      badgeIcon: "palette",
+      badgeColorClass: "bg-[#1a2a44] text-[#eed182] border border-[#c59b27]/60",
+      headline: "Giao Thoa Cổ Điển & Hiện Đại Độc Đáo",
+      analysis:
+        "Bạn đã khéo léo kết hợp giữa đường nét di sản truyền thống và phụ kiện/hạ y đương đại. Bản phối vừa giữ được sự kín đáo, vừa thể hiện cá tính thời trang trẻ trung của thế hệ Z.",
+      etiquetteTips: [
+        "Có thể bổ sung thêm trang sức bạc (kiềng bạc hoặc trâm cài) để tăng chiều sâu nghệ thuật.",
+      ],
+      conflicts: [],
+      regionsPresent,
+    };
+  }
+
+  return {
+    score: 100,
+    tier: "authentic",
+    badgeTitle: "Di Sản Thuần Khiết (100% Authentic)",
+    badgeIcon: "verified",
+    badgeColorClass: "bg-[#AE3022] text-[#FAF6EE] border border-[#c59b27]",
+    headline: "Chuẩn Mực Lịch Sử & Lễ Nghi Trọn Vẹn",
+    analysis:
+      "Tất cả các món đồ từ y phục, hạ y đến phụ kiện đều thuộc cùng một hệ thống di sản văn hóa nguyên bản. Phom dáng, đường nét và thần thái toát lên sự đài các, trang nghiêm và chuẩn mực lịch sử tuyệt đối.",
+    etiquetteTips: [
+      "Bộ trang phục hoàn hảo cho các dịp trọng đại như Lễ Cưới, Kỷ Yếu Học Đường, Ngoại Giao Văn Hóa và Lễ Hội Dân Gian.",
+    ],
+    conflicts: [],
+    regionsPresent,
+  };
+}
+

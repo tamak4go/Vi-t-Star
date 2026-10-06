@@ -1,6 +1,7 @@
 // api/stitch/_helper.js
 // Shared helpers for Vercel Serverless Functions and local Stitch integration
-import { StitchToolClient } from '@google/stitch-sdk';
+import { Stitch, StitchToolClient } from '@google/stitch-sdk';
+import { setGlobalDispatcher, Agent } from 'undici';
 import dns from 'node:dns';
 
 try {
@@ -8,6 +9,21 @@ try {
 } catch {
   // ignore
 }
+
+// Cấu hình dispatcher mở rộng timeout cho Google Stitch MCP và Google Cloud CDN (tránh lỗi 10s ConnectTimeoutError)
+try {
+  setGlobalDispatcher(new Agent({
+    connect: { timeout: 60_000 },
+    headersTimeout: 180_000,
+    bodyTimeout: 180_000,
+    keepAliveTimeout: 30_000,
+    keepAliveMaxTimeout: 60_000,
+  }));
+} catch (err) {
+  console.warn('[Stitch API Helper] Không thể thiết lập Undici Agent:', err);
+}
+
+export { Stitch };
 
 export const CURATED_HERITAGE_SCREENS = [
   {
@@ -86,8 +102,8 @@ export function extractCredentials(req, body = {}) {
 
 let cachedClient = null;
 
-export async function getStitchClient(apiKey) {
-  if (cachedClient) {
+export async function getStitchClient(apiKey, forceFresh = false) {
+  if (cachedClient && !forceFresh) {
     if (cachedClient.isConnected) {
       return cachedClient;
     }
@@ -98,7 +114,15 @@ export async function getStitchClient(apiKey) {
     }
     cachedClient = null;
   }
-  const client = new StitchToolClient({ apiKey });
+  if (forceFresh && cachedClient) {
+    try {
+      await cachedClient.close();
+    } catch {
+      // ignore
+    }
+    cachedClient = null;
+  }
+  const client = new StitchToolClient({ apiKey, timeout: 150_000 });
   await client.connect();
   cachedClient = client;
   return client;
@@ -114,3 +138,4 @@ export function resetStitchClient() {
     cachedClient = null;
   }
 }
+

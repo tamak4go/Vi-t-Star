@@ -9,21 +9,65 @@ import {
   type OccasionType,
 } from '../services/culturalKnowledgeService';
 
+export const OCCASION_TO_BACKDROP: Record<OccasionType, string> = {
+  'ky-yeu': 'ky_yeu',
+  'tet': 'tet',
+  'dinh-lang': 'dinh_lang',
+  'dam-cuoi': 'hy_su',
+  'cafe-genz': 'ca_phe',
+  'ngoai-giao': 'ngoai_giao',
+};
+
+export const BACKDROP_TO_OCCASION: Record<string, OccasionType> = {
+  'ky_yeu': 'ky-yeu',
+  'tet': 'tet',
+  'dinh_lang': 'dinh-lang',
+  'hy_su': 'dam-cuoi',
+  'ca_phe': 'cafe-genz',
+  'ngoai_giao': 'ngoai-giao',
+};
+
 interface WeatherOccasionBarProps {
   onApplyRecommendation: (setId: string, suggestedHex?: string) => void;
   onFilterCategory?: (tag: string) => void;
+  currentBackdropId?: string;
+  onSelectBackdrop?: (backdropId: string) => void;
 }
 
 export const WeatherOccasionBar: React.FC<WeatherOccasionBarProps> = ({
   onApplyRecommendation,
+  currentBackdropId,
+  onSelectBackdrop,
 }) => {
   const [selectedSeason, setSelectedSeason] = useState<WeatherSeason>('autumn');
-  const [selectedOccasion, setSelectedOccasion] = useState<OccasionType>('ky-yeu');
+  const [selectedOccasion, setSelectedOccasion] = useState<OccasionType>(() => {
+    return (currentBackdropId && BACKDROP_TO_OCCASION[currentBackdropId]) || 'ky-yeu';
+  });
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
+
+  // Đồng bộ hai chiều khi backdrop từ ngoài thay đổi
+  React.useEffect(() => {
+    if (currentBackdropId && BACKDROP_TO_OCCASION[currentBackdropId]) {
+      const targetOcc = BACKDROP_TO_OCCASION[currentBackdropId];
+      setSelectedOccasion(targetOcc);
+    }
+  }, [currentBackdropId]);
 
   const recommendation = recommendByWeatherAndOccasion(selectedSeason, selectedOccasion);
 
+  const handleSelectOccasion = (occKey: OccasionType) => {
+    setSelectedOccasion(occKey);
+    const mappedBackdrop = OCCASION_TO_BACKDROP[occKey];
+    if (mappedBackdrop && onSelectBackdrop) {
+      onSelectBackdrop(mappedBackdrop);
+    }
+  };
+
   const handleApply = () => {
+    const mappedBackdrop = OCCASION_TO_BACKDROP[selectedOccasion];
+    if (mappedBackdrop && onSelectBackdrop) {
+      onSelectBackdrop(mappedBackdrop);
+    }
     if (recommendation.recommendedSetIds.length > 0) {
       const targetSetId = recommendation.recommendedSetIds[0];
       const targetHex = recommendation.recommendedColors[0]?.hex;
@@ -120,7 +164,7 @@ export const WeatherOccasionBar: React.FC<WeatherOccasionBarProps> = ({
                 <button
                   key={occKey}
                   type="button"
-                  onClick={() => setSelectedOccasion(occKey)}
+                  onClick={() => handleSelectOccasion(occKey)}
                   className={`h-6 px-2 rounded-full text-[10.5px] font-semibold flex items-center gap-1 shrink-0 transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[#AE3022] text-[#FAF6EE] shadow-xs'

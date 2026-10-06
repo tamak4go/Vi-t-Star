@@ -2,13 +2,30 @@
 // Vite Plugin cung cấp API endpoint bảo mật cho Google Stitch SDK (Local Dev)
 import type { Plugin, ViteDevServer } from 'vite';
 import { loadEnv } from 'vite';
-import { StitchToolClient } from '@google/stitch-sdk';
+import { Stitch, StitchToolClient } from '@google/stitch-sdk';
+import { setGlobalDispatcher, Agent } from 'undici';
 import dns from 'node:dns';
+import * as os from 'node:os';
+import * as path from 'node:path';
+import * as fs from 'node:fs/promises';
 
 try {
   dns.setDefaultResultOrder('ipv4first');
 } catch {
   // ignore
+}
+
+// Cấu hình dispatcher mở rộng timeout cho Google Stitch MCP và Google Cloud CDN (tránh lỗi 10s ConnectTimeoutError)
+try {
+  setGlobalDispatcher(new Agent({
+    connect: { timeout: 60_000 },
+    headersTimeout: 180_000,
+    bodyTimeout: 180_000,
+    keepAliveTimeout: 30_000,
+    keepAliveMaxTimeout: 60_000,
+  }));
+} catch (err) {
+  console.warn('[Stitch API] Không thể thiết lập Undici Agent:', err);
 }
 
 let cachedClient: StitchToolClient | null = null;
@@ -57,8 +74,8 @@ const CURATED_HERITAGE_SCREENS: CachedScreen[] = [
 
 const generatedScreensCache: CachedScreen[] = [...CURATED_HERITAGE_SCREENS];
 
-async function getStitchClient(apiKey: string): Promise<StitchToolClient> {
-  if (cachedClient) {
+async function getStitchClient(apiKey: string, forceFresh = false): Promise<StitchToolClient> {
+  if (cachedClient && !forceFresh) {
     if ((cachedClient as any).isConnected) {
       return cachedClient;
     }
@@ -69,7 +86,15 @@ async function getStitchClient(apiKey: string): Promise<StitchToolClient> {
     }
     cachedClient = null;
   }
-  const client = new StitchToolClient({ apiKey });
+  if (forceFresh && cachedClient) {
+    try {
+      await cachedClient.close();
+    } catch {
+      // ignore
+    }
+    cachedClient = null;
+  }
+  const client = new StitchToolClient({ apiKey, timeout: 150_000 });
   await client.connect();
   cachedClient = client;
   return client;
@@ -261,7 +286,96 @@ export function stitchApiPlugin(): Plugin {
           return;
         }
 
-        // 4. Endpoint: POST /api/stitch/generate
+        // 4. Endpoint: POST /api/stitch/upload-face
+        if (url.startsWith('/api/stitch/upload-face') && req.method === 'POST') {
+          if (req.socket) {
+            req.socket.setTimeout(0);
+            req.socket.setKeepAlive(true, 10000);
+          }
+          let bodyStr = '';
+          req.on('data', (chunk) => {
+            bodyStr += chunk;
+          });
+          req.on('end', async () => {
+            try {
+              const body = JSON.parse(bodyStr || '{}');
+              const finalKey = (body.apiKey || effectiveApiKey).trim();
+              const projectId = (body.projectId || defaultProjectId).replace('projects/', '');
+              const imageBase64 = body.imageBase64;
+              const title = body.title || `User Portrait - ${Date.now()}`;
+
+              if (!finalKey) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ success: false, error: 'Chưa có STITCH_API_KEY.' }));
+                return;
+              }
+              if (!imageBase64) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ success: false, error: 'Thiếu dữ liệu ảnh (imageBase64).' }));
+                return;
+              }
+
+              let cleanBase64 = imageBase64;
+              let ext = '.png';
+              if (imageBase64.includes(';base64,')) {
+                const parts = imageBase64.split(';base64,');
+                cleanBase64 = parts[1];
+                if (parts[0].includes('jpeg') || parts[0].includes('jpg')) ext = '.jpg';
+                else if (parts[0].includes('webp')) ext = '.webp';
+              }
+
+              const tempDir = os.tmpdir();
+              const tempFilePath = path.join(tempDir, `vietstar-face-${Date.now()}${ext}`);
+              await fs.writeFile(tempFilePath, Buffer.from(cleanBase64, 'base64'));
+
+              const client = await getStitchClient(finalKey);
+              const sdk = new Stitch(client);
+              const project = sdk.project(projectId);
+
+              let uploadedScreens: any[] = [];
+              try {
+                uploadedScreens = await project.upload(tempFilePath, { title });
+              } finally {
+                await fs.unlink(tempFilePath).catch(() => {});
+              }
+
+              const targetScreen = uploadedScreens[0];
+              if (!targetScreen) {
+                res.statusCode = 502;
+                res.end(JSON.stringify({ success: false, error: 'Stitch Cloud không tạo được screen khi tải ảnh lên.' }));
+                return;
+              }
+
+              let rawUrl = '';
+              try {
+                const details: any = await client.callTool('get_screen', {
+                  name: targetScreen.name || `projects/${projectId}/screens/${targetScreen.id}`,
+                });
+                rawUrl = details.screenshot?.downloadUrl || '';
+              } catch {
+                // ignore
+              }
+
+              const proxiedUrl = rawUrl ? `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}` : undefined;
+
+              res.statusCode = 200;
+              res.end(JSON.stringify({
+                success: true,
+                screenId: targetScreen.id,
+                screenName: targetScreen.name,
+                screenshotUrl: proxiedUrl,
+                rawDownloadUrl: rawUrl,
+              }));
+            } catch (err: any) {
+              console.error('[Stitch API] Lỗi upload ảnh mặt:', err);
+              res.statusCode = 500;
+              res.end(JSON.stringify({ success: false, error: err.message || 'Lỗi upload ảnh lên Stitch Cloud' }));
+            }
+          });
+          return;
+        }
+
+        // 5. Endpoint: POST /api/stitch/generate
         if (url.startsWith('/api/stitch/generate') && req.method === 'POST') {
           if (req.socket) {
             req.socket.setTimeout(0);
@@ -279,8 +393,10 @@ export function stitchApiPlugin(): Plugin {
               const finalKey = (body.apiKey || effectiveApiKey).trim();
               const prompt = body.prompt;
               const quality = body.quality || 'standard';
-              const deviceType = body.deviceType || (quality === 'fast' ? 'MOBILE' : 'DESKTOP');
+              // Cho Poster thời trang, dùng DESKTOP để tạo bố cục poster chất lượng cao
+              const deviceType = body.deviceType || 'DESKTOP';
               const projectId = (body.projectId || defaultProjectId).replace('projects/', '');
+              const referenceScreenId = body.referenceScreenId;
 
               if (!finalKey) {
                 res.statusCode = 400;
@@ -297,27 +413,42 @@ export function stitchApiPlugin(): Plugin {
                 return;
               }
 
-              console.log(`[Stitch API] Sinh screen (${quality} | device: ${deviceType}):`, prompt.slice(0, 100) + '...');
+              console.log(`[Stitch API] Sinh screen (${quality} | device: ${deviceType} | ref: ${referenceScreenId || 'none'}):`, prompt.slice(0, 100) + '...');
               let client = await getStitchClient(finalKey);
 
               let genRes: any;
               try {
-                genRes = await client.callTool('generate_screen_from_text', {
-                  projectId,
-                  prompt,
-                  deviceType,
-                });
-              } catch (callErr: any) {
-                if (callErr.message?.includes('transport') || callErr.message?.includes('connect')) {
-                  resetStitchClient();
-                  client = await getStitchClient(finalKey);
+                if (referenceScreenId) {
+                  genRes = await client.callTool('edit_screens', {
+                    projectId,
+                    selectedScreenIds: [referenceScreenId],
+                    prompt,
+                    deviceType,
+                  });
+                } else {
                   genRes = await client.callTool('generate_screen_from_text', {
                     projectId,
                     prompt,
                     deviceType,
                   });
+                }
+              } catch (callErr: any) {
+                console.warn('[Stitch API] Thử lần 1 thất bại, khởi tạo kết nối mới và thử lại lần 2:', callErr?.message || callErr);
+                resetStitchClient();
+                client = await getStitchClient(finalKey, true);
+                if (referenceScreenId) {
+                  genRes = await client.callTool('edit_screens', {
+                    projectId,
+                    selectedScreenIds: [referenceScreenId],
+                    prompt,
+                    deviceType,
+                  });
                 } else {
-                  throw callErr;
+                  genRes = await client.callTool('generate_screen_from_text', {
+                    projectId,
+                    prompt,
+                    deviceType,
+                  });
                 }
               }
 
@@ -332,11 +463,28 @@ export function stitchApiPlugin(): Plugin {
                 return;
               }
 
-              const screenDetails: any = await client.callTool('get_screen', {
-                name: screenInfo.name,
-              });
+              // Ưu tiên downloadUrl đã có sẵn trong response của Stitch SDK
+              let rawUrl = screenInfo.screenshot?.downloadUrl;
+              let screenTitle = screenInfo.title || screenInfo.prompt || 'Vietnamese Fashion Poster';
+              let htmlCode = screenInfo.htmlCode;
 
-              const rawUrl = screenDetails.screenshot?.downloadUrl;
+              // Nếu chưa có downloadUrl thì gọi get_screen với đầy đủ 3 tham số bắt buộc
+              if (!rawUrl) {
+                try {
+                  const sId = screenInfo.id || screenInfo.name.split('/').pop();
+                  const screenDetails: any = await client.callTool('get_screen', {
+                    name: screenInfo.name,
+                    projectId,
+                    screenId: sId,
+                  });
+                  rawUrl = screenDetails.screenshot?.downloadUrl;
+                  screenTitle = screenDetails.title || screenTitle;
+                  htmlCode = screenDetails.htmlCode || htmlCode;
+                } catch (getErr: any) {
+                  console.warn('[Stitch API] get_screen fallback warning:', getErr.message);
+                }
+              }
+
               const proxiedUrl = rawUrl
                 ? `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`
                 : undefined;
@@ -344,12 +492,12 @@ export function stitchApiPlugin(): Plugin {
               const newScreen = {
                 id: screenInfo.id || screenInfo.name.split('/').pop(),
                 name: screenInfo.name,
-                title: screenDetails.title || screenInfo.prompt,
+                title: screenTitle,
                 screenshotUrl: proxiedUrl,
                 rawDownloadUrl: rawUrl,
-                htmlCode: screenDetails.htmlCode,
-                width: screenDetails.width,
-                height: screenDetails.height,
+                htmlCode,
+                width: screenInfo.width,
+                height: screenInfo.height,
               };
 
               generatedScreensCache.unshift(newScreen);

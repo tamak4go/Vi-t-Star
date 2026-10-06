@@ -60,6 +60,46 @@ export const WARDROBE_CATEGORIES: Category[] = [
   "base",
 ];
 
+// ---- 1.1 Vùng Miền / Bối Cảnh Địa Phương Văn Hóa (Audition Tiêu Chí Địa Phương) ----
+export type HeritageRegion =
+  | "all"
+  | "bac_bo"
+  | "hue"
+  | "nam_bo"
+  | "tay_bac"
+  | "cham_pa"
+  | "duong_dai";
+
+export interface RegionFilterOption {
+  id: HeritageRegion;
+  label: string;
+  shortLabel: string;
+  icon: string;
+  description: string;
+}
+
+export const HERITAGE_REGIONS: RegionFilterOption[] = [
+  { id: "all", label: "Tất Cả Địa Phương", shortLabel: "Tất Cả", icon: "public", description: "Toàn bộ kho tàng trang phục 3 miền" },
+  { id: "bac_bo", label: "Bắc Bộ (Kinh Bắc)", shortLabel: "Bắc Bộ", icon: "spa", description: "Áo Tứ Thân, Yếm Đào, Nón Quai Thao, Áo Dài Sen" },
+  { id: "hue", label: "Cung Đình Huế", shortLabel: "Huế", icon: "castle", description: "Áo Nhật Bình, Áo Tấc, Áo Ngũ Thân Triều Nguyễn" },
+  { id: "nam_bo", label: "Nam Bộ Sông Nước", shortLabel: "Nam Bộ", icon: "sailing", description: "Áo Bà Ba, Khăn Rằn, Nón Lá, Giỏ Mây" },
+  { id: "tay_bac", label: "Tây Bắc Đại Ngàn", shortLabel: "Tây Bắc", icon: "landscape", description: "Áo Cóm, Khăn Piêu Dân Tộc Thái" },
+  { id: "cham_pa", label: "Duyên Hải Chăm Pa", shortLabel: "Chăm Pa", icon: "account_balance", description: "Cổ Phục Thổ Cẩm & Kiềng Bạc Tháp Cổ" },
+  { id: "duong_dai", label: "Gen Z Remix", shortLabel: "Gen Z", icon: "bolt", description: "Công Sở Cổ Đứng, Y2K Streetwear Phá Cách" },
+];
+
+export function getSetRegion(setId?: string): HeritageRegion {
+  if (!setId) return "duong_dai";
+  if (setId === "sample1" || setId === "sample2") return "bac_bo";
+  if (setId === "sample4" || setId === "sample5" || setId === "sample6") return "hue";
+  if (setId === "sample3") return "nam_bo";
+  if (setId === "sample7") return "tay_bac";
+  if (setId === "sample8") return "cham_pa";
+  if (setId === "sample9" || setId === "sample10" || setId === "sample11") return "duong_dai";
+  return "duong_dai";
+}
+
+
 // ---- 2. Palette màu Việt cổ (dùng cho preset swatch) ----
 
 export interface TraditionalColor {
@@ -851,3 +891,80 @@ export function sortByLayer(equipped: EquippedOutfit): WardrobeItem[] {
     .filter((item): item is WardrobeItem => Boolean(item))
     .sort((a, b) => LAYER_MAP[a.category] - LAYER_MAP[b.category]);
 }
+
+// ---- 7. Stage Backdrops (Bối Cảnh Sàn Thử Sống Động) ----
+
+export interface StageBackdrop {
+  id: string;
+  name: string;
+  shortName: string;
+  icon: string;
+  src?: string;
+  occasionId?: string;
+  description: string;
+}
+
+export const STAGE_BACKDROPS: StageBackdrop[] = [
+  {
+    id: "parchment",
+    name: "Giấy Dó Truyền Thống",
+    shortName: "Giấy Dó",
+    icon: "📜",
+    src: "",
+    description: "Sàn thử mộc nền giấy dó hoàng cung tối giản (Mặc định)",
+  },
+  {
+    id: "ky_yeu",
+    name: "Kỷ Yếu Học Đường",
+    shortName: "Kỷ Yếu",
+    icon: "🎓",
+    src: "/assets/backgrounds/bg_ky_yeu.png",
+    occasionId: "ky-yeu",
+    description: "Sân trường rợp bóng cây, cờ hoa kỷ yếu thanh xuân",
+  },
+  {
+    id: "tet",
+    name: "Tết & Du Xuân",
+    shortName: "Du Xuân",
+    icon: "🧧",
+    src: "/assets/backgrounds/bg_tet.png",
+    occasionId: "tet",
+    description: "Phố hoa rực rỡ, lồng đèn đỏ mừng xuân đón vượng khí",
+  },
+  {
+    id: "dinh_lang",
+    name: "Lễ Hội & Đình Làng",
+    shortName: "Đình Làng",
+    icon: "🏮",
+    src: "/assets/backgrounds/bg_dinh_lang.png",
+    occasionId: "dinh-lang",
+    description: "Không gian cổ kính sân đình, cờ hội ngũ sắc Kinh Bắc",
+  },
+  {
+    id: "hy_su",
+    name: "Hỷ Sự & Đám Cưới",
+    shortName: "Hỷ Sự",
+    icon: "💍",
+    src: "/assets/backgrounds/bg_hy_su.png",
+    occasionId: "dam-cuoi",
+    description: "Sảnh đại tiệc cưới hoa lệ, ánh đèn hoàng gia sang trọng",
+  },
+  {
+    id: "ca_phe",
+    name: "Cà Phê Dạo Phố Gen Z",
+    shortName: "Dạo Phố",
+    icon: "☕",
+    src: "/assets/backgrounds/bg_ca_phe.png",
+    occasionId: "cafe-genz",
+    description: "Quán cà phê phố thị thời thượng, phong cách dạo phố trẻ trung",
+  },
+  {
+    id: "ngoai_giao",
+    name: "Ngoại Giao & Sự Kiện",
+    shortName: "Ngoại Giao",
+    icon: "✨",
+    src: "/assets/backgrounds/bg_ngoai_giao.png",
+    occasionId: "ngoai-giao",
+    description: "Hội nghị quốc tế trang trọng, dạ tiệc di sản tầm vóc",
+  },
+];

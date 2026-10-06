@@ -22,60 +22,37 @@ export default async function handler(req, res) {
   const { apiKey, projectId } = extractCredentials(req, body);
   const prompt = body?.prompt || '';
   const quality = body?.quality || 'standard';
-  const deviceType = body?.deviceType || (quality === 'fast' ? 'MOBILE' : 'DESKTOP');
+  // Dùng DESKTOP cho poster thời trang để tạo ảnh nghệ thuật hoàn chỉnh
+  const deviceType = body?.deviceType || 'DESKTOP';
+  const referenceScreenId = body?.referenceScreenId;
 
-  // Hàm chọn mẫu di sản tương thích tốt nhất dựa theo nội dung prompt
-  const getSmartFallbackScreen = () => {
-    const p = prompt.toLowerCase();
-    let matched = CURATED_HERITAGE_SCREENS[0]; // Mặc định Áo Tấc
-
-    if (p.includes('nhật bình') || p.includes('nhat binh')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-nhat-binh') || matched;
-    } else if (p.includes('yếm') || p.includes('yem') || p.includes('tứ thân') || p.includes('tu than')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-ao-tac') || matched;
-    } else if (p.includes('ngũ thân') || p.includes('ngu than') || p.includes('lập lĩnh')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-ngu-than') || matched;
-    } else if (p.includes('áo dài') || p.includes('ao dai') || p.includes('kỉ yếu') || p.includes('ki yeu')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-ao-dai') || matched;
-    } else if (p.includes('bà ba') || p.includes('ba ba') || p.includes('nam bộ')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-ao-ba-ba') || matched;
-    } else if (p.includes('thái') || p.includes('thai') || p.includes('thổ cẩm')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-dan-toc-thai') || matched;
-    } else if (p.includes('chăm') || p.includes('cham') || p.includes('tháp')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-co-phuc-cham') || matched;
-    } else if (p.includes('áo tấc') || p.includes('ao tac')) {
-      matched = CURATED_HERITAGE_SCREENS.find(s => s.id === 'heritage-ao-tac') || matched;
-    } else {
-      // Chọn ngẫu nhiên trong danh sách mẫu đẹp
-      const randomIndex = Math.floor(Math.random() * CURATED_HERITAGE_SCREENS.length);
-      matched = CURATED_HERITAGE_SCREENS[randomIndex];
-    }
-
-    return {
-      id: 'gen-' + Date.now(),
-      name: `projects/${projectId}/screens/gen-${Date.now()}`,
-      title: `${matched.title} (Atelier Heritage Render)`,
-      screenshotUrl: matched.screenshotUrl,
-      rawDownloadUrl: matched.rawDownloadUrl,
-      isHeritageFallback: true,
-    };
-  };
-
-  // Nếu không có apiKey trên server, lập tức phục vụ tác phẩm di sản tương thích
+  // Nếu không có apiKey trên server, phục vụ tác phẩm di sản tương thích
   if (!apiKey) {
-    const fallbackScreen = getSmartFallbackScreen();
+    const randomIndex = Math.floor(Math.random() * CURATED_HERITAGE_SCREENS.length);
+    const matched = CURATED_HERITAGE_SCREENS[randomIndex];
     return res.status(200).json({
       success: true,
-      screen: fallbackScreen,
+      screen: {
+        id: 'gen-' + Date.now(),
+        name: `projects/${projectId}/screens/gen-${Date.now()}`,
+        title: `${matched.title} (Atelier Heritage Render)`,
+        screenshotUrl: matched.screenshotUrl,
+        rawDownloadUrl: matched.rawDownloadUrl,
+        isHeritageFallback: true,
+      },
       fallback: true,
     });
   }
 
-  // Hàm bọc timeout 90 giây cho Google Cloud hoàn thành tác phẩm tỉ mỉ
-  const withTimeout = (promise, ms = 90000) => {
+  if (!prompt) {
+    return res.status(400).json({ success: false, error: 'Thiếu tham số prompt.' });
+  }
+
+  // Hàm bọc timeout 120 giây cho Google Cloud hoàn thành tác phẩm tỉ mỉ
+  const withTimeout = (promise, ms = 120000) => {
     let timeoutId;
     const timeoutPromise = new Promise((_, reject) => {
-      timeoutId = setTimeout(() => reject(new Error('Google Stitch Cloud timeout (90s limit)')), ms);
+      timeoutId = setTimeout(() => reject(new Error('Google Stitch Cloud timeout (120s limit)')), ms);
     });
     return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
   };
@@ -83,57 +60,85 @@ export default async function handler(req, res) {
   try {
     let client = await getStitchClient(apiKey);
     let genRes;
+
     try {
-      genRes = await withTimeout(
-        client.callTool('generate_screen_from_text', {
-          projectId,
-          prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
-          deviceType,
-        }),
-        90000
-      );
-    } catch (callErr) {
-      if (callErr.message?.includes('transport') || callErr.message?.includes('connect')) {
-        resetStitchClient();
-        client = await getStitchClient(apiKey);
+      if (referenceScreenId) {
+        genRes = await withTimeout(
+          client.callTool('edit_screens', {
+            projectId,
+            selectedScreenIds: [referenceScreenId],
+            prompt,
+            deviceType,
+          }),
+          120000
+        );
+      } else {
         genRes = await withTimeout(
           client.callTool('generate_screen_from_text', {
             projectId,
-            prompt: prompt || 'Traditional Vietnamese Royal Costume fashion poster, editorial studio portrait',
+            prompt,
             deviceType,
           }),
-          90000
+          120000
+        );
+      }
+    } catch (callErr) {
+      console.warn('[API generate] Thử lần 1 thất bại, khởi tạo kết nối mới và thử lại lần 2:', callErr?.message || callErr);
+      resetStitchClient();
+      client = await getStitchClient(apiKey, true);
+
+      if (referenceScreenId) {
+        genRes = await withTimeout(
+          client.callTool('edit_screens', {
+            projectId,
+            selectedScreenIds: [referenceScreenId],
+            prompt,
+            deviceType,
+          }),
+          120000
         );
       } else {
-        throw callErr;
+        genRes = await withTimeout(
+          client.callTool('generate_screen_from_text', {
+            projectId,
+            prompt,
+            deviceType,
+          }),
+          120000
+        );
       }
     }
 
     const screenInfo = genRes?.outputComponents?.[0]?.design?.screens?.[0];
     if (!screenInfo || !screenInfo.name) {
-      console.warn('[API generate] Stitch did not return valid screen info, serving heritage render');
-      return res.status(200).json({
-        success: true,
-        screen: getSmartFallbackScreen(),
-        fallback: true,
+      return res.status(502).json({
+        success: false,
+        error: 'Stitch Cloud không trả về kết quả screen hợp lệ.',
+        raw: genRes,
       });
     }
 
     // Ưu tiên screenshotUrl có sẵn từ kết quả sinh của Google Stitch
     let rawUrl = screenInfo?.screenshot?.downloadUrl;
-    let screenDetails = null;
+    let screenTitle = screenInfo.title || screenInfo.prompt || 'Poster Cổ Phục Việt Nam';
+    let htmlCode = screenInfo.htmlCode;
 
     if (!rawUrl) {
       try {
-        screenDetails = await withTimeout(
+        const sId = screenInfo.id || screenInfo.name.split('/').pop();
+        const screenDetails = await withTimeout(
           client.callTool('get_screen', {
             name: screenInfo.name,
+            projectId,
+            screenId: sId,
           }),
           15000
         );
         rawUrl = screenDetails?.screenshot?.downloadUrl;
+        screenTitle = screenDetails?.title || screenTitle;
+        htmlCode = screenDetails?.htmlCode || htmlCode;
       } catch (detailsErr) {
-        console.warn('[API generate] Could not fetch details for screen:', screenInfo.name);
+        console.warn('[API generate] Could not fetch details for screen:', screenInfo.name, detailsErr?.message);
       }
     }
 
@@ -144,12 +149,12 @@ export default async function handler(req, res) {
     const newScreen = {
       id: screenInfo.id || screenInfo.name.split('/').pop(),
       name: screenInfo.name,
-      title: screenInfo.title || screenDetails?.title || screenInfo.prompt || 'Poster Cổ Phục Việt Nam',
-      screenshotUrl: proxiedUrl || rawUrl || getSmartFallbackScreen().screenshotUrl,
+      title: screenTitle,
+      screenshotUrl: proxiedUrl || rawUrl,
       rawDownloadUrl: rawUrl,
-      htmlCode: screenDetails?.htmlCode,
-      width: screenInfo.width || screenDetails?.width,
-      height: screenInfo.height || screenDetails?.height,
+      htmlCode,
+      width: screenInfo.width,
+      height: screenInfo.height,
       isAiGenerated: true,
     };
 
@@ -158,15 +163,12 @@ export default async function handler(req, res) {
       screen: newScreen,
     });
   } catch (err) {
-    console.error('[API generate] Stitch engine error, using smart fallback:', err.message);
+    console.error('[API generate] Stitch engine error:', err.message);
     resetStitchClient();
-    // Luôn đảm bảo người dùng nhận được poster di sản hoàn mỹ thay vì lỗi 500
-    const fallbackScreen = getSmartFallbackScreen();
-    return res.status(200).json({
-      success: true,
-      screen: fallbackScreen,
-      fallback: true,
-      engineNotice: 'Đang kết xuất từ kho tàng di sản Atelier',
+    return res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi gọi Google Stitch Engine',
     });
   }
 }
+

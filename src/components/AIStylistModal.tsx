@@ -21,6 +21,8 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Camera,
+  UploadCloud,
 } from "lucide-react";
 import {
   STYLING_OCCASIONS,
@@ -43,7 +45,11 @@ import {
   type OutfitPreset,
   OUTFIT_PRESETS,
 } from "../data/dressroomConfig";
-import type { UserFaceConfig } from "./FaceUploadModal";
+import {
+  analyzePosterCulturally,
+  type PosterCulturalAnalysis,
+} from "../services/posterAnalysisService";
+import { PosterCulturalInspector } from "./PosterCulturalInspector";
 
 interface AIStylistModalProps {
   isOpen: boolean;
@@ -52,7 +58,8 @@ interface AIStylistModalProps {
   colorState: ColorState;
   onApplyPresetWithColors: (preset: OutfitPreset, colors: Record<string, string>) => void;
   showToast: (msg: string) => void;
-  userFaceConfig?: UserFaceConfig;
+  initialTab?: "stylist" | "stitch";
+  initialFaceMode?: "default" | "custom";
 }
 
 interface StitchScreenResult {
@@ -70,9 +77,10 @@ export function AIStylistModal({
   colorState,
   onApplyPresetWithColors,
   showToast,
-  userFaceConfig,
+  initialTab = "stylist",
+  initialFaceMode = "default",
 }: AIStylistModalProps) {
-  const [activeTab, setActiveTab] = useState<"stylist" | "stitch">("stylist");
+  const [activeTab, setActiveTab] = useState<"stylist" | "stitch">(initialTab);
   const [selectedOccasionId, setSelectedOccasionId] = useState<string>("tet");
 
   // State cho Stitch Studio
@@ -105,6 +113,60 @@ export function AIStylistModal({
     return localStorage.getItem("stitch_project_id") || "8753486478358563567";
   });
 
+  // Quản lý Gương Mặt Người Mẫu Poster (Khuôn mặt độc bản của User qua Google Stitch)
+  const [faceMode, setFaceMode] = useState<"default" | "custom">(initialFaceMode);
+  const [userFaceImage, setUserFaceImage] = useState<string | null>(null);
+  const [userFaceName, setUserFaceName] = useState<string>("Bạn");
+  const [uploadedFaceScreenId, setUploadedFaceScreenId] = useState<string | null>(null);
+  const [isUploadingFace, setIsUploadingFace] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Quản lý Điểm Ghim Chú Thích & Thẩm Định Di Sản Poster AI
+  const [showHotspots, setShowHotspots] = useState<boolean>(true);
+  const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
+
+  // Đồng bộ tab và chế độ gương mặt khi modal được kích hoạt mở từ bên ngoài
+  useEffect(() => {
+    if (isOpen) {
+      if (initialTab) {
+        setActiveTab(initialTab);
+      }
+      if (initialFaceMode) {
+        setFaceMode(initialFaceMode);
+      }
+    }
+  }, [isOpen, initialTab, initialFaceMode]);
+
+  const handleFaceFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      showToast("⚠️ Vui lòng chọn tệp hình ảnh hợp lệ (PNG, JPG, WEBP)!");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      setUserFaceImage(base64);
+      setUploadedFaceScreenId(null);
+      setFaceMode("custom");
+      setIsUserEditingPrompt(false);
+      showToast("📸 Đã nạp ảnh chân dung. Google Stitch sẽ dùng diện mạo này cho Poster!");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveFaceImage = () => {
+    setUserFaceImage(null);
+    setUploadedFaceScreenId(null);
+    setFaceMode("default");
+    setIsUserEditingPrompt(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    showToast("ℹ️ Đã xóa ảnh chân dung, trở về người mẫu AI mặc định.");
+  };
+
   const selectedOccasion =
     STYLING_OCCASIONS.find((o) => o.id === selectedOccasionId) || STYLING_OCCASIONS[0];
 
@@ -115,6 +177,33 @@ export function AIStylistModal({
     () => getEquippedOutfitSummary(equippedOutfit, colorState),
     [equippedOutfit, colorState]
   );
+
+  // AI Thẩm định & phân tích di sản cho Poster hiện tại
+  const posterAnalysis = useMemo<PosterCulturalAnalysis | null>(() => {
+    if (!generatedScreen) return null;
+    return analyzePosterCulturally({
+      posterId: generatedScreen.id,
+      posterTitle: generatedScreen.title,
+      promptText: customPrompt || generatedScreen.title,
+      sourceMode: outfitSourceMode,
+      equippedOutfit,
+      colorState,
+      selectedPresetId: selectedPresetOutfitId,
+      customOutfitInput,
+      selectedOccasionId,
+      selectedBackgroundId,
+    });
+  }, [
+    generatedScreen,
+    customPrompt,
+    outfitSourceMode,
+    equippedOutfit,
+    colorState,
+    selectedPresetOutfitId,
+    customOutfitInput,
+    selectedOccasionId,
+    selectedBackgroundId,
+  ]);
 
   // Giai đoạn xử lý thích ứng theo tiến trình Google Cloud (~40-60s)
   const getGenerationStage = (sec: number) => {
@@ -159,7 +248,9 @@ export function AIStylistModal({
     customOutfit = customOutfitInput,
     bgId = selectedBackgroundId,
     customBg = customBackgroundInput,
-    creativeText = userCreativeInput
+    creativeText = userCreativeInput,
+    isCustomFace = faceMode === "custom" && Boolean(userFaceImage),
+    faceName = userFaceName
   ) => {
     const prompt = generateStitchFashionPrompt({
       equippedOutfit,
@@ -174,8 +265,8 @@ export function AIStylistModal({
       backgroundPresetId: bgId,
       customBackground: customBg,
       quality,
-      hasCustomFace: Boolean(userFaceConfig?.enabled),
-      customFaceName: userFaceConfig?.name,
+      hasCustomFace: isCustomFace,
+      customFaceName: faceName,
     });
     setCustomPrompt(prompt);
   };
@@ -210,6 +301,9 @@ export function AIStylistModal({
     selectedBackgroundId,
     customBackgroundInput,
     quality,
+    faceMode,
+    userFaceImage,
+    userFaceName,
   ]);
 
   // Cập nhật khi mở Modal
@@ -279,11 +373,11 @@ export function AIStylistModal({
     const cfg = QUALITY_CONFIGS[quality];
     let isTimedOut = false;
 
-    // Timeout an toàn 100s: phòng ngừa mạng rớt hoàn toàn
+    // Timeout an toàn 120s cho Google Stitch tạo tác chi tiết
     const clientTimeout = setTimeout(() => {
       isTimedOut = true;
       controller.abort();
-    }, 100000);
+    }, 120000);
 
     const desc =
       outfitSourceMode === "custom"
@@ -293,6 +387,42 @@ export function AIStylistModal({
         : "Mẫu phối trên Canvas";
 
     try {
+      let referenceScreenId = uploadedFaceScreenId;
+
+      // Nếu người dùng chọn dùng ảnh mặt riêng và chưa upload lên Stitch Cloud:
+      if (faceMode === "custom" && userFaceImage && !referenceScreenId) {
+        try {
+          setIsUploadingFace(true);
+          showToast("🔄 Đang đồng bộ khuôn mặt lên Google Stitch...");
+          const upRes = await fetch("/api/stitch/upload-face", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(userApiKey ? { "x-stitch-api-key": userApiKey } : {}),
+              ...(userProjectId ? { "x-stitch-project-id": userProjectId } : {}),
+            },
+            body: JSON.stringify({
+              imageBase64: userFaceImage,
+              title: `Portrait - ${userFaceName || 'User'}`,
+              ...(userApiKey ? { apiKey: userApiKey } : {}),
+              ...(userProjectId ? { projectId: userProjectId } : {}),
+            }),
+          });
+          const upData = await upRes.json();
+          if (upData.success && upData.screenId) {
+            referenceScreenId = upData.screenId;
+            setUploadedFaceScreenId(upData.screenId);
+          } else {
+            throw new Error(upData.error || "Không nhận được ID màn hình từ Stitch");
+          }
+        } catch (upErr: any) {
+          console.warn("Lỗi upload ảnh mặt lên Stitch:", upErr);
+          showToast(`⚠️ Không thể nạp ảnh mặt: ${upErr.message || 'Lỗi mạng'}. Sẽ thử tạo poster chung.`);
+        } finally {
+          setIsUploadingFace(false);
+        }
+      }
+
       const res = await fetch("/api/stitch/generate", {
         method: "POST",
         headers: {
@@ -305,6 +435,7 @@ export function AIStylistModal({
           prompt: customPrompt,
           quality,
           deviceType: cfg.deviceType,
+          ...(referenceScreenId ? { referenceScreenId } : {}),
           ...(userApiKey ? { apiKey: userApiKey } : {}),
           ...(userProjectId ? { projectId: userProjectId } : {}),
         }),
@@ -315,39 +446,24 @@ export function AIStylistModal({
         setGeneratedScreen(data.screen);
         setIsFreshlyGenerated(true);
         setFreshGeneratedDescription(desc);
-        if (data.screen.isHeritageFallback) {
-          showToast("ℹ️ Google Cloud đang bận, hiển thị tác phẩm tương thích từ kho Atelier.");
+        if (referenceScreenId) {
+          showToast("🎉 Đã hoàn tất Poster Lookbook mang đúng khuôn mặt và thần thái của bạn!");
+        } else if (data.screen.isHeritageFallback) {
+          showToast("ℹ️ Hiển thị tác phẩm di sản tương thích từ kho Atelier.");
         } else {
           showToast("🎉 Đã hoàn tất tác phẩm poster thời trang độc bản!");
         }
         fetchRecentScreens();
       } else {
-        const fallbackScreen = recentScreens[0] || {
-          id: "heritage-instant",
-          name: "heritage-instant",
-          title: "Poster Cổ Phục Di Sản • Nét Đẹp Hoàng Triều",
-          screenshotUrl: "/assets/reference/sample6_ao-tac_ref.png",
-        };
-        setGeneratedScreen(fallbackScreen);
-        setIsFreshlyGenerated(true);
-        setFreshGeneratedDescription(desc);
-        showToast("✨ AI đang bận kết xuất, vui lòng thử lại sau giây lát!");
+        console.error("Lỗi sinh ảnh từ server:", data.error);
+        showToast(`❌ Chưa thể sinh ảnh: ${data.error || "Google Stitch Cloud đang bận, vui lòng thử lại!"}`);
       }
     } catch (err: any) {
       if (isTimedOut || err.name === "AbortError") {
-        const fallbackScreen = recentScreens[0] || {
-          id: "heritage-instant",
-          name: "heritage-instant",
-          title: "Poster Cổ Phục Di Sản • Nét Đẹp Hoàng Triều",
-          screenshotUrl: "/assets/reference/sample6_ao-tac_ref.png",
-        };
-        setGeneratedScreen(fallbackScreen);
-        setIsFreshlyGenerated(true);
-        setFreshGeneratedDescription(desc);
-        showToast("ℹ️ Kết nối mạng kéo dài hơn dự kiến, đã hiển thị tác phẩm tham khảo.");
+        showToast("⏱️ Quá thời gian chờ (120s) do mạng chập chờn. Vui lòng bấm thử lại!");
       } else {
         console.error("Lỗi gọi Stitch API:", err);
-        showToast("✨ AI đang bận kết xuất, vui lòng thử lại sau giây lát!");
+        showToast(`❌ Lỗi kết nối: ${err.message || "Vui lòng kiểm tra mạng và thử lại!"}`);
       }
     } finally {
       clearTimeout(clientTimeout);
@@ -413,8 +529,9 @@ export function AIStylistModal({
           >
             <Wand2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#c59b27]" />
             <span>Studio Poster AI</span>
-            <span className="text-[9px] px-1 py-0.2 rounded bg-[#1a2a44] text-[#c59b27] font-mono hidden sm:inline">
-              Live API
+            <span className="text-[9.5px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-rose-500/20 text-[#b93829] font-bold border border-amber-300/60 hidden sm:inline-flex items-center gap-1 shadow-2xs">
+              <Camera className="w-2.5 h-2.5" />
+              Ghép Mặt Bạn
             </span>
           </button>
         </div>
@@ -926,7 +1043,134 @@ export function AIStylistModal({
                   </div>
                 </div>
 
-                {/* 3. BỘ CHỌN BỐI CẢNH (CURATED BACKGROUNDS HOẶC TỰ NHẬP PROMPT) */}
+                {/* 3. TÙY CHỌN GƯƠNG MẶT NGƯỜI MẪU (GOOGLE STITCH MULTIMODAL FACE) */}
+                <div className="bg-[#fcf9f3] p-3 rounded-xl border border-amber-900/10 shadow-2xs space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                      <Camera className="w-3.5 h-3.5 text-[#b93829]" />
+                      Gương Mặt Người Mẫu Poster:
+                    </label>
+                    <div className="flex items-center bg-[#f0eee8] p-0.5 rounded-lg border border-[#e5e2dc] text-[10.5px]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFaceMode("default");
+                          setIsUserEditingPrompt(false);
+                        }}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer ${
+                          faceMode === "default"
+                            ? "bg-white text-[#1a2a44] shadow-xs font-bold"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        Mặc Định AI
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFaceMode("custom");
+                          setIsUserEditingPrompt(false);
+                          if (!userFaceImage && fileInputRef.current) {
+                            fileInputRef.current.click();
+                          }
+                        }}
+                        className={`px-2.5 py-1 rounded-md font-semibold transition-all cursor-pointer flex items-center gap-1 ${
+                          faceMode === "custom"
+                            ? "bg-[#b93829] text-white shadow-xs font-bold"
+                            : "text-slate-500 hover:text-slate-800"
+                        }`}
+                      >
+                        <Sparkles className="w-3 h-3 text-amber-200" />
+                        <span>Mặt Của Bạn</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Ẩn file input để kích hoạt */}
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleFaceFileChange}
+                    className="hidden"
+                  />
+
+                  {faceMode === "custom" && (
+                    <div className="pt-1">
+                      {!userFaceImage ? (
+                        <div
+                          onClick={() => fileInputRef.current?.click()}
+                          className="border-2 border-dashed border-amber-300 hover:border-[#b93829] bg-amber-50/60 hover:bg-amber-50/90 transition-all rounded-xl p-3.5 text-center cursor-pointer group"
+                        >
+                          <UploadCloud className="w-6 h-6 text-[#b93829] mx-auto mb-1.5 group-hover:scale-110 transition-transform" />
+                          <p className="text-xs font-bold text-slate-800">
+                            Bấm hoặc kéo thả ảnh chân dung / selfie vào đây
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            Google Stitch AI sẽ nhận diện khuôn mặt và vẽ bạn thành nhân vật chính trên Poster!
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="bg-white p-2.5 rounded-xl border border-amber-200/80 shadow-xs flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="relative shrink-0">
+                              <img
+                                src={userFaceImage}
+                                alt="Ảnh mặt người dùng"
+                                className="w-12 h-12 rounded-xl object-cover border-2 border-amber-400 shadow-xs"
+                              />
+                              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full flex items-center justify-center text-[10px] text-white shadow-xs border border-white">
+                                ✓
+                              </span>
+                            </div>
+                            <div className="min-w-0 space-y-0.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-xs font-bold text-slate-800">
+                                  Khuôn mặt:
+                                </span>
+                                <input
+                                  type="text"
+                                  value={userFaceName}
+                                  onChange={(e) => setUserFaceName(e.target.value)}
+                                  placeholder="Tên của bạn"
+                                  className="text-xs font-bold text-[#b93829] bg-amber-50/50 border-b border-amber-300 focus:outline-none focus:border-[#b93829] max-w-[90px] px-1 py-0.5 rounded-xs"
+                                  title="Đặt tên cho người mẫu mang khuôn mặt của bạn"
+                                />
+                                <span className="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200 shrink-0">
+                                  {isUploadingFace ? "Đang đồng bộ..." : "Đã nạp"}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-500 leading-tight">
+                                Stitch sẽ tự động chuyển hóa đường nét khuôn mặt & mái tóc này thành phong cách minh họa trên Poster.
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10.5px] font-medium rounded-lg transition-colors cursor-pointer"
+                              title="Tải ảnh khác"
+                            >
+                              Đổi ảnh
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleRemoveFaceImage}
+                              className="p-1 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+                              title="Gỡ ảnh này"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 4. BỘ CHỌN BỐI CẢNH (CURATED BACKGROUNDS HOẶC TỰ NHẬP PROMPT) */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-[11px] font-bold text-slate-700 flex items-center gap-1.5">
@@ -1424,19 +1668,67 @@ export function AIStylistModal({
                         )}
                       </div>
 
-                      <img
-                        src={generatedScreen.screenshotUrl}
-                        alt="Stitch Generated Fashion Poster"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          // Fallback an toàn nếu link ảnh ngoài gặp sự cố
-                          const target = e.currentTarget;
-                          if (!target.src.includes('sample6_ao-tac_ref.png')) {
-                            target.src = '/assets/reference/sample6_ao-tac_ref.png';
-                          }
-                        }}
-                        className="max-h-[420px] max-w-full object-contain rounded-lg shadow-2xl transition-transform duration-300 group-hover:scale-[1.01]"
-                      />
+                      <div className="relative inline-flex items-center justify-center max-h-[420px] max-w-full">
+                        <img
+                          src={generatedScreen.screenshotUrl}
+                          alt="Stitch Generated Fashion Poster"
+                          referrerPolicy="no-referrer"
+                          onError={(e) => {
+                            // Fallback an toàn nếu link ảnh ngoài gặp sự cố
+                            const target = e.currentTarget;
+                            if (!target.src.includes('sample6_ao-tac_ref.png')) {
+                              target.src = '/assets/reference/sample6_ao-tac_ref.png';
+                            }
+                          }}
+                          className="max-h-[420px] max-w-full object-contain rounded-lg shadow-2xl transition-transform duration-300 group-hover:scale-[1.01]"
+                        />
+
+                        {/* Điểm Ghim Chú Thích Tương Tác Trực Quan Trên Poster */}
+                        {showHotspots && posterAnalysis && posterAnalysis.hotspots.map((hs) => {
+                          const isSelected = selectedHotspotId === hs.id;
+                          return (
+                            <div
+                              key={hs.id}
+                              style={{ left: `${hs.x}%`, top: `${hs.y}%` }}
+                              className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group/pin"
+                            >
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedHotspotId(isSelected ? null : hs.id);
+                                }}
+                                className={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-lg cursor-pointer ${
+                                  isSelected
+                                    ? "bg-[#b93829] text-white ring-4 ring-[#c59b27] scale-125 z-20 shadow-[0_0_15px_rgba(185,56,41,0.8)]"
+                                    : "bg-[#1a2a44]/90 text-[#eed182] hover:bg-[#b93829] hover:text-white border border-[#c59b27]/80 hover:scale-110"
+                                }`}
+                                title={`${hs.number}. ${hs.title}`}
+                              >
+                                <span className="relative z-1">{hs.number}</span>
+                                <span className="absolute inset-0 rounded-full animate-ping bg-[#c59b27]/40 pointer-events-none" />
+                              </button>
+
+                              {/* Tooltip / Mini Popover khi hover hoặc click */}
+                              <div
+                                className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 sm:w-56 p-2 rounded-xl bg-slate-950/95 backdrop-blur-md text-white border border-[#c59b27]/70 shadow-2xl transition-all z-30 pointer-events-none ${
+                                  isSelected
+                                    ? "opacity-100 visible scale-100"
+                                    : "opacity-0 invisible scale-95 group-hover/pin:opacity-100 group-hover/pin:visible group-hover/pin:scale-100"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between text-[10px] font-bold text-[#eed182] border-b border-white/10 pb-1 mb-1">
+                                  <span className="truncate">{hs.number}. {hs.title}</span>
+                                  <span className="text-[8px] px-1 py-0.2 bg-[#b93829] text-white rounded shrink-0">{hs.categoryLabel}</span>
+                                </div>
+                                <p className="text-[10px] text-slate-300 line-clamp-2 leading-tight">{hs.meaning}</p>
+                                <p className="text-[9px] text-emerald-400 mt-1 line-clamp-1 italic">💡 {hs.etiquette}</p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
                       <div className="absolute bottom-3 right-3 flex items-center gap-2">
                         <a
                           href={generatedScreen.screenshotUrl}
@@ -1461,6 +1753,20 @@ export function AIStylistModal({
                     </div>
                   )}
                 </div>
+
+                {/* 6. BẢNG AI THẨM ĐỊNH & CHÚ THÍCH DI SẢN CHO POSTER (ĐỒNG BỘ ĐẦY ĐỦ TÍNH NĂNG NHƯ DRESSROOM) */}
+                {posterAnalysis && (
+                  <PosterCulturalInspector
+                    analysis={posterAnalysis}
+                    showHotspots={showHotspots}
+                    onToggleHotspots={() => setShowHotspots(!showHotspots)}
+                    selectedHotspotId={selectedHotspotId}
+                    onSelectHotspot={setSelectedHotspotId}
+                    onApplyPresetToDressroom={onApplyPresetWithColors}
+                    onCloseModal={onClose}
+                    showToast={showToast}
+                  />
+                )}
 
                 {/* Thư viện các poster đã tạo trước đó trong Project */}
                 <div className="space-y-1.5 pt-1">

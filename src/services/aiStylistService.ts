@@ -628,45 +628,46 @@ export function generateStitchFashionPrompt(options: StitchPromptOptions): strin
       ? "Vietnamese fashion model"
       : "Vietnamese female model";
 
-  const faceNote = hasCustomFace
-    ? `, featuring custom portrait (${customFaceName || 'Gen Z model'}) with radiant youthful Vietnamese facial features, natural expression and modern poise`
+  const faceDirective = hasCustomFace
+    ? `\n[PRIMARY MANDATORY DIRECTIVE - SUBJECT FACE PRESERVATION]:
+- The fashion model's face, facial contour, almond eyes, eyebrows, nose, lips, jawline, skin tone, and hairstyle MUST faithfully preserve and mirror the person shown in the reference portrait image (${customFaceName || 'User Avatar'}) with natural photographic realism, graceful expression, and aristocratic poise.`
     : '';
 
   const creativeDetailStr = userCreativeText && userCreativeText.trim()
     ? `Creative nuances & touches: ${userCreativeText.trim()}.`
     : "";
 
-  // Bản nháp nhanh: tinh gọn token, không đòi hỏi 8K render, có khóa bảo vệ văn hóa
+  // Bản nháp nhanh: tinh gọn token nhưng vẫn là poster thời trang hoàn chỉnh
   if (quality === "fast") {
-    return `Minimalist Vietnamese fashion lookbook card draft:
-[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
-Subject: A stylish ${genderTerm}${faceNote} (${userVibe}).
+    return `Editorial Vietnamese fashion lookbook poster (Fast Preview):
+[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]${faceDirective}
+Subject: A young stylish ${genderTerm} (aesthetic: ${userVibe}) standing in an elegant pose.
 Attire: ${outfitListStr}.
 ${creativeDetailStr ? `Details: ${creativeDetailStr}\n` : ""}Setting / Background: ${effectiveSetting}.
-Layout: Clean single-column mobile lookbook card, title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", minimalist vector layout, streamlined web rendering.`;
+Layout: Refined vertical fashion lookbook poster, title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", authentic photography aesthetic, harmonious color scheme.`;
   }
 
   // Tiêu chuẩn HD: cân bằng màu sắc và ánh sáng
   if (quality === "standard") {
-    return `Editorial lookbook fashion poster:
-[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
-Subject: A young stylish ${genderTerm}${faceNote} (aesthetic: ${userVibe}) posing with elegance and poise.
+    return `High-fashion imperial editorial lookbook poster photography of traditional Vietnamese royal attire:
+[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]${faceDirective}
+Subject: A young stylish ${genderTerm} (aesthetic: ${userVibe}) posing with elegance, poise, and dignity.
 Attire: ${outfitListStr}.
 ${creativeDetailStr ? `Creative Accents: ${creativeDetailStr}\n` : ""}Theme: ${outfitThemeName} (${occasion.tagline}).
-Cultural Details: Refined textures, authentic collar neckline, handcrafted details and harmonious color palette.
-Setting / Atmosphere: ${effectiveSetting}, warm soft golden hour sunset lighting, imperial elegance and gentle atmospheric depth.
-Typography & Layout: Fashion lookbook poster with title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", curated color palette swatch bar at bottom, clean HD editorial photography aesthetic.`;
+Cultural Details: Refined silk textures, authentic collar neckline, handcrafted gold embroidery, and harmonious royal color palette.
+Setting / Atmosphere: ${effectiveSetting}, warm soft golden hour sunset lighting, imperial elegance, and gentle atmospheric depth.
+Typography & Layout: Fashion lookbook poster with title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", curated luxury color palette swatch bar at bottom, clean HD editorial photography aesthetic.`;
   }
 
   // Siêu nét 8K: dành cho bản poster triển lãm cao cấp
-  return `High-fashion full-body lookbook editorial poster:
-[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]
-Subject: A young stylish ${genderTerm}${faceNote} (aesthetic: ${userVibe}) posing gracefully in full figure.
+  return `Masterpiece imperial editorial lookbook poster photography:
+[LOCKED HERITAGE GUARDRAIL: ${customGuardrailEn}]${faceDirective}
+Subject: A young stylish ${genderTerm} (aesthetic: ${userVibe}) posing gracefully in full figure with aristocratic dignity.
 Attire: ${outfitListStr}.
 ${creativeDetailStr ? `Creative Accents: ${creativeDetailStr}\n` : ""}Theme: ${outfitThemeName} (${occasion.tagline}).
 Cultural Details: Exquisite fabric textures, layered silk robes, authentic neckline collar, traditional hand-crafted embroidery details.
 Setting / Atmosphere: ${effectiveSetting}, soft cinematic sunset lighting, golden hour rim lights, subtle fog mist, dignified imperial atmosphere.
-Typography & Layout: Premium magazine poster format, archival typography layout with elegant title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", curated color palette swatch bar at bottom, museum exhibition grade composition, 8k resolution fashion photography aesthetic.`;
+Typography & Layout: Premium museum magazine poster format, archival typography layout with elegant title "VIETNAM FASHION LOOKBOOK - ${outfitThemeName.toUpperCase()}", curated color palette swatch bar at bottom, museum exhibition grade composition, 8k resolution fashion photography aesthetic.`;
 }
 
 // ---- QUY TẮC BẢO CHỨNG THUẦN PHONG MỸ TỤC BẤT DI BẤT DỊCH (LOCKED INVARIANT) ----

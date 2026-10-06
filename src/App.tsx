@@ -1,16 +1,18 @@
 // src/App.tsx
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AIStylistModal } from './components/AIStylistModal';
+import { AuditionDossierModal } from './components/AuditionDossierModal';
 import { ColorTuningPanel } from './components/ColorTuningPanel';
+import { CulturalAuthenticityModal } from './components/CulturalAuthenticityModal';
 import { CulturalStoryModal } from './components/CulturalStoryModal';
 import { DressCanvas } from './components/DressCanvas';
-import { FaceUploadModal, DEFAULT_FACE_CONFIG, type UserFaceConfig } from './components/FaceUploadModal';
 import { LayerInspector } from './components/LayerInspector';
 import { SnapshotModal } from './components/SnapshotModal';
 import { WardrobePanel } from './components/WardrobePanel';
 import { WeatherOccasionBar } from './components/WeatherOccasionBar';
 import { checkCulturalEtiquette } from './services/aiStylistService';
-import { getItemCulturalStory } from './services/culturalKnowledgeService';
+import { checkCulturalAuthenticity, getItemCulturalStory } from './services/culturalKnowledgeService';
+
 import {
   BASE_MANNEQUIN_ITEM,
   INITIAL_BRIGHTNESS_STATE,
@@ -48,40 +50,53 @@ export function App() {
   // Tầng y phục đang được chọn để chỉnh màu tại panel bên phải
   const [activeCategory, setActiveCategory] = useState<Category>('innerTop');
 
+  // Bối cảnh sàn thử đồ: mặc định Giấy Dó Truyền Thống mộc nguyên bản
+  const [selectedBackdrop, setSelectedBackdrop] = useState<string>('parchment');
+
   // Điều khiển sàn thử đồ
   const [isComparing, setIsComparing] = useState(false);
   const [zoom, setZoom] = useState(1.0);
   const [isSnapshotOpen, setIsSnapshotOpen] = useState(false);
   const [isAIStylistOpen, setIsAIStylistOpen] = useState(false);
+  const [aiStylistInitialTab, setAiStylistInitialTab] = useState<'stylist' | 'stitch'>('stylist');
+  const [aiStylistInitialFaceMode, setAiStylistInitialFaceMode] = useState<'default' | 'custom'>('default');
   const [mobileTab, setMobileTab] = useState<'wardrobe' | 'color' | 'layers'>('wardrobe');
   const [toast, setToast] = useState<string | null>(null);
 
   // Master Plan Audition Features:
-  // 1. Cá nhân hóa gương mặt Avatar (Stage 2)
-  const [isFaceModalOpen, setIsFaceModalOpen] = useState(false);
-  const [userFaceConfig, setUserFaceConfig] = useState<UserFaceConfig>(() => {
-    try {
-      const saved = localStorage.getItem('vietstar_custom_face');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Không thể đọc face config:', e);
-    }
-    return DEFAULT_FACE_CONFIG;
-  });
 
   // 2. Hộp thoại điển tích văn hóa (Stage 1 & 3)
   const [isStoryModalOpen, setIsStoryModalOpen] = useState(false);
   const [selectedStoryItem, setSelectedStoryItem] = useState<WardrobeItem | null>(null);
 
-  // 3. Bộ so sánh bản phối A / B (Stage 4)
+  // 3. Bộ so sánh bản phối A / B (Stage 4) - Lưu trữ bền vững vào localStorage
   const [isABMode, setIsABMode] = useState(false);
-  const [outfitSetA, setOutfitSetA] = useState<{ outfit: EquippedOutfit; colors: ColorState } | null>(null);
-  const [outfitSetB, setOutfitSetB] = useState<{ outfit: EquippedOutfit; colors: ColorState } | null>(null);
+  const [outfitSetA, setOutfitSetA] = useState<{ outfit: EquippedOutfit; colors: ColorState } | null>(() => {
+    try {
+      const saved = localStorage.getItem('vietstar_outfit_slot_a');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [outfitSetB, setOutfitSetB] = useState<{ outfit: EquippedOutfit; colors: ColorState } | null>(() => {
+    try {
+      const saved = localStorage.getItem('vietstar_outfit_slot_b');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [activeSlot, setActiveSlot] = useState<'A' | 'B'>('A');
+
+  // 4. Hộp thoại Đề Án Audition & Thẩm định chuẩn mực văn hóa (Tiêu chí Đề thi Audition)
+  const [isAuditionDossierOpen, setIsAuditionDossierOpen] = useState(false);
+  const [isAuthenticityModalOpen, setIsAuthenticityModalOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const showToast = (msg: string) => {
+
     setToast(msg);
     setTimeout(() => {
       setToast(null);
@@ -201,26 +216,16 @@ export function App() {
     showToast('Đã tạo diện mạo phối sắc ngẫu nhiên!');
   };
 
-  // Đặt lại toàn bộ sàn thử
+  // Đặt lại toàn bộ sàn thử: Cởi hết toàn bộ y phục, đưa về người mẫu mộc & nền giấy dó mộc nguyên bản
   const handleResetStage = () => {
-    setEquippedOutfit(buildEquippedFromPreset('sample1'));
+    setEquippedOutfit({ base: BASE_MANNEQUIN_ITEM });
     setLayerVisibility(INITIAL_LAYER_STATE);
     setColorState(INITIAL_COLOR_STATE);
     setBrightnessState(INITIAL_BRIGHTNESS_STATE);
+    setSelectedBackdrop('parchment');
     setIsComparing(false);
     setZoom(1.0);
-    showToast('Đã đặt lại sàn thử đồ về mặc định');
-  };
-
-  // Handler cá nhân hóa gương mặt (Face Avatar)
-  const handleApplyFaceConfig = (config: UserFaceConfig) => {
-    setUserFaceConfig(config);
-    try {
-      localStorage.setItem('vietstar_custom_face', JSON.stringify(config));
-    } catch (e) {
-      console.error('Không thể lưu face config:', e);
-    }
-    showToast(config.enabled ? `✨ Đã gắn gương mặt: ${config.name}!` : 'Đã khôi phục gương mặt mộc');
+    showToast('Đã cởi hết trang phục, đưa sàn thử về người mẫu mộc & nền giấy dó!');
   };
 
   // Handler mở hộp thoại điển tích văn hóa
@@ -253,12 +258,24 @@ export function App() {
 
   // Handlers cho bộ so sánh A / B (A/B Comparator)
   const handleSaveToSetA = () => {
-    setOutfitSetA({ outfit: { ...equippedOutfit }, colors: { ...colorState } });
+    const data = { outfit: { ...equippedOutfit }, colors: { ...colorState } };
+    setOutfitSetA(data);
+    try {
+      localStorage.setItem('vietstar_outfit_slot_a', JSON.stringify(data));
+    } catch (e) {
+      console.error(e);
+    }
     showToast('💾 Đã lưu bộ hiện tại vào Bản Phối A!');
   };
 
   const handleSaveToSetB = () => {
-    setOutfitSetB({ outfit: { ...equippedOutfit }, colors: { ...colorState } });
+    const data = { outfit: { ...equippedOutfit }, colors: { ...colorState } };
+    setOutfitSetB(data);
+    try {
+      localStorage.setItem('vietstar_outfit_slot_b', JSON.stringify(data));
+    } catch (e) {
+      console.error(e);
+    }
     showToast('💾 Đã lưu bộ hiện tại vào Bản Phối B!');
   };
 
@@ -279,10 +296,63 @@ export function App() {
       const next = !prev;
       if (next && !outfitSetA) {
         // Tự động snapshot bộ hiện tại vào Slot A khi vừa bật
-        setOutfitSetA({ outfit: { ...equippedOutfit }, colors: { ...colorState } });
+        const data = { outfit: { ...equippedOutfit }, colors: { ...colorState } };
+        setOutfitSetA(data);
+        try {
+          localStorage.setItem('vietstar_outfit_slot_a', JSON.stringify(data));
+        } catch {}
       }
       return next;
     });
+  };
+
+  // ⚡ Gen Z Remix: Mix & Match Cổ Phục Di Sản x Streetwear & Y2K Hiện Đại
+  const handleGenZRemix = () => {
+    const heritageTops = ['sample6-ao', 'sample2-ao', 'sample1-yem', 'sample3-ao', 'sample4-ao', 'sample7-ao'];
+    const modernBottoms = ['sample10-quan', 'sample11-vay', 'sample9-vay'];
+    const modernShoes = ['sample11-bot', 'sample10-giay', 'sample9-giay'];
+    const modernAccessories = ['sample11-headphone', 'sample11-choker', 'sample9-vi', 'sample9-bong-tai'];
+
+    const chosenTopId = heritageTops[Math.floor(Math.random() * heritageTops.length)];
+    const chosenBottomId = modernBottoms[Math.floor(Math.random() * modernBottoms.length)];
+    const chosenShoesId = modernShoes[Math.floor(Math.random() * modernShoes.length)];
+    const chosenAccId = modernAccessories[Math.floor(Math.random() * modernAccessories.length)];
+
+    const topItem = WARDROBE_ITEMS.find((it) => it.id === chosenTopId);
+    const bottomItem = WARDROBE_ITEMS.find((it) => it.id === chosenBottomId);
+    const shoesItem = WARDROBE_ITEMS.find((it) => it.id === chosenShoesId);
+    const accItem = WARDROBE_ITEMS.find((it) => it.id === chosenAccId);
+
+    const newEquipped: EquippedOutfit = {
+      base: BASE_MANNEQUIN_ITEM,
+    };
+    if (topItem) newEquipped[topItem.category] = topItem;
+    if (bottomItem) newEquipped[bottomItem.category] = bottomItem;
+    if (shoesItem) newEquipped[shoesItem.category] = shoesItem;
+    if (accItem) newEquipped[accItem.category] = accItem;
+
+    // Phối màu ngẫu nhiên hài hòa cho các món recolorable
+    const newColors: ColorState = {};
+    const shuffled = [...TRADITIONAL_PALETTE].sort(() => 0.5 - Math.random());
+    let colorIdx = 0;
+    Object.values(newEquipped).forEach((item) => {
+      if (item && item.recolorable) {
+        newColors[item.id] = shuffled[colorIdx % shuffled.length].hex;
+        colorIdx++;
+      }
+    });
+
+    setEquippedOutfit(newEquipped);
+    setLayerVisibility(INITIAL_LAYER_STATE);
+    setColorState(newColors);
+    setBrightnessState(INITIAL_BRIGHTNESS_STATE);
+
+    // Chuyển background sang 'ca_phe' (Cà phê dạo phố Gen Z) nếu đang ở backdrop cổ điển
+    if (selectedBackdrop === 'parchment' || selectedBackdrop === 'dinh_lang') {
+      setSelectedBackdrop('ca_phe');
+    }
+
+    showToast('⚡ Gen Z Remix: Cổ Phục x Streetwear & Y2K!');
   };
 
   // Tự động nhận diện giày cao gót để đổi phom chân kiễng chuẩn 1:1, không lòi ngón chân trần
@@ -299,6 +369,23 @@ export function App() {
 
   // Kiểm tra thuần phong mỹ tục: Cổ phục Việt Nam không được thiếu hạ y (quần/váy)
   const culturalCheck = checkCulturalEtiquette(equippedOutfit, layerVisibility);
+
+  // Thẩm định chuẩn mực di sản & phát hiện sai lệch đặc trưng văn hóa (Tiêu chí đề thi Audition)
+  const BACKDROP_TO_OCCASION_MAP: Record<string, string> = {
+    parchment: 'ky-yeu',
+    hue_palace: 'tet',
+    ancient_town: 'dinh-lang',
+    studio_gold: 'dam-cuoi',
+    lotus_pond: 'ky-yeu',
+    minimal_gray: 'cafe-genz',
+    bamboo_screen: 'dinh-lang',
+    hy_su: 'dam-cuoi',
+    ca_phe: 'cafe-genz',
+    ngoai_giao: 'ngoai-giao',
+  };
+  const activeOccasionId = BACKDROP_TO_OCCASION_MAP[selectedBackdrop] || 'ky-yeu';
+  const authenticityAssessment = checkCulturalAuthenticity(equippedOutfit, activeOccasionId);
+
 
   // Mặc nhanh hạ y (quần/váy) phù hợp để đảm bảo thuần phong mỹ tục
   const handleAutoEquipModestBottom = () => {
@@ -325,6 +412,46 @@ export function App() {
   const activeCount = Object.entries(equippedOutfit).filter(
     ([cat, it]) => cat !== 'base' && Boolean(it) && Boolean(layerVisibility[cat as Category])
   ).length;
+
+  const snapshotOutfitName = activeCount === 0 ? 'Người Mẫu Mộc' : currentPreset?.name || 'Cổ Phục Đại Việt';
+  const snapshotEraName = activeCount === 0 ? 'Mộc Thể Nguyên Bản' : getItemCulturalStory(null, currentSetId).era;
+
+  // Phím tắt bàn phím toàn cục (Keyboard Shortcuts)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        setIsSnapshotOpen(false);
+        setIsAIStylistOpen(false);
+        setIsStoryModalOpen(false);
+        return;
+      }
+
+      if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        handleRandomize();
+      } else if (e.key === 'x' || e.key === 'X') {
+        e.preventDefault();
+        handleGenZRemix();
+      } else if (e.key === 's' || e.key === 'S') {
+        e.preventDefault();
+        setIsSnapshotOpen(true);
+      } else if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        handleToggleABMode();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        handleResetStage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [equippedOutfit, colorState, selectedBackdrop]);
 
   return (
     <div className="bg-background text-on-surface font-body-md text-body-md min-h-screen selection:bg-secondary-fixed selection:text-on-secondary-fixed">
@@ -376,25 +503,20 @@ export function App() {
           {/* Quick Header Actions - Icon-first on Mobile */}
           <div className="flex items-center gap-1 sm:gap-space-sm shrink-0">
             <button
-              id="header-face-avatar-btn"
               type="button"
-              onClick={() => setIsFaceModalOpen(true)}
-              className={`h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg flex items-center gap-1 text-label-sm font-semibold transition-all cursor-pointer ${
-                userFaceConfig.enabled
-                  ? 'bg-gradient-to-r from-[#ae3022] to-[#c59b27] text-white shadow-xs ring-1 ring-[#eed182]'
-                  : 'bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40'
-              }`}
-              title="Tải ảnh khuôn mặt / Chọn avatar cá nhân hóa"
+              onClick={handleGenZRemix}
+              className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-gradient-to-r from-purple-700 to-pink-600 text-white hover:opacity-95 transition-all flex items-center gap-1 text-label-sm font-semibold shadow-xs cursor-pointer"
+              title="Phối ngẫu hứng Cổ Phục x Y2K Hiện Đại (Phím X)"
             >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">face</span>
-              <span className="hidden xl:inline">{userFaceConfig.enabled ? 'Mặt Cá Nhân' : 'Gương Mặt'}</span>
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">bolt</span>
+              <span className="hidden xl:inline">Gen Z Remix</span>
             </button>
 
             <button
               type="button"
               onClick={handleRandomize}
               className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1 text-label-sm font-medium shadow-sm cursor-pointer"
-              title="Phối ngẫu nhiên màu truyền thống"
+              title="Phối ngẫu nhiên màu truyền thống (Phím R)"
             >
               <span className="material-symbols-outlined text-[17px] sm:text-[18px]">casino</span>
               <span className="hidden xl:inline">Ngẫu Nhiên</span>
@@ -405,7 +527,7 @@ export function App() {
               type="button"
               onClick={handleResetStage}
               className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1 text-label-sm font-medium shadow-sm cursor-pointer"
-              title="Đặt Lại Ban Đầu"
+              title="Đặt Lại Ban Đầu / Cởi Hết (Phím Delete)"
             >
               <span className="material-symbols-outlined text-[17px] sm:text-[18px]">restart_alt</span>
               <span className="hidden xl:inline">Đặt Lại</span>
@@ -414,13 +536,48 @@ export function App() {
             <button
               id="header-ai-stylist-btn"
               type="button"
-              onClick={() => setIsAIStylistOpen(true)}
+              onClick={() => {
+                setAiStylistInitialTab('stylist');
+                setAiStylistInitialFaceMode('default');
+                setIsAIStylistOpen(true);
+              }}
               className="h-8 sm:h-9 px-2 sm:px-space-md rounded-lg bg-gradient-to-r from-[#b93829] to-[#c59b27] text-white hover:opacity-95 shadow-[0_2px_12px_rgba(185,56,41,0.35)] transition-all flex items-center gap-1 font-label-sm font-semibold cursor-pointer"
-              title="Cố Vấn Phối Đồ AI & Studio Poster Stitch"
+              title="Cố Vấn Phối Đồ AI"
             >
               <span className="material-symbols-outlined text-[17px] sm:text-[18px]">auto_awesome</span>
               <span className="hidden sm:inline">Cố Vấn AI</span>
               <span className="sm:hidden text-[11px] font-bold">AI</span>
+            </button>
+
+            {/* Nút Hồ Sơ Đề Án Audition - Trình bày mục tiêu, Persona Gen Z & Triết lý văn hóa */}
+            <button
+              id="header-audition-dossier-btn"
+              type="button"
+              onClick={() => setIsAuditionDossierOpen(true)}
+              className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-primary border border-[#c59b27]/40 shadow-2xs transition-all flex items-center gap-1 font-label-sm font-semibold cursor-pointer"
+              title="Xem Hồ Sơ Đề Án Audition (Phương pháp luận & Bảo chứng di sản)"
+            >
+              <span className="material-symbols-outlined text-[16px] sm:text-[17px] text-[#AE3022]">menu_book</span>
+              <span className="hidden md:inline">Đề Án Audition</span>
+              <span className="md:hidden">Đề Án</span>
+            </button>
+
+            {/* Nút Tạo Poster Mặt Bạn - Mở trực tiếp Stitch Studio và khung tải ảnh chân dung */}
+            <button
+              id="header-upload-face-poster-btn"
+              type="button"
+              onClick={() => {
+                setAiStylistInitialTab('stitch');
+                setAiStylistInitialFaceMode('custom');
+                setIsAIStylistOpen(true);
+              }}
+              className="h-8 sm:h-9 px-2 sm:px-space-md rounded-lg bg-gradient-to-r from-amber-600 via-rose-600 to-[#b93829] text-white hover:opacity-95 shadow-[0_2px_12px_rgba(217,119,6,0.35)] transition-all flex items-center gap-1.5 font-label-sm font-bold cursor-pointer ring-1 ring-amber-300/50"
+              title="Tải ảnh chân dung & Dùng Stitch AI tạo Poster Lookbook mang khuôn mặt bạn"
+            >
+              <span className="material-symbols-outlined text-[17px] sm:text-[18px] text-amber-200">add_a_photo</span>
+              <span className="hidden md:inline">Tải Mặt Sinh Poster</span>
+              <span className="md:hidden hidden xs:inline">Tải Mặt</span>
+              <span className="xs:hidden text-[11px] font-bold">Mặt</span>
             </button>
 
             <button
@@ -449,9 +606,24 @@ export function App() {
                 >
                   palette
                 </span>
-                <span className="text-[11px] sm:text-[13px] text-primary tracking-wide font-semibold truncate">
-                  Xưởng Cổ Phục Bắc Bộ
+                <span className="text-[11px] sm:text-[12.5px] text-primary tracking-wide font-semibold truncate">
+                  Xưởng Cổ Phục {currentPreset?.shortName || 'Việt Star'}
                 </span>
+
+                {/* Huy Hiệu Thẩm Định Chuẩn Mực Văn Hóa (Audition: Cảnh báo sai lệch đặc trưng văn hóa) */}
+                <button
+                  type="button"
+                  id="context-bar-authenticity-badge"
+                  onClick={() => setIsAuthenticityModalOpen(true)}
+                  className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[10.5px] font-bold cursor-pointer transition-all shadow-2xs hover:brightness-105 shrink-0 ${authenticityAssessment.badgeColorClass}`}
+                  title="Nhấn để xem phân tích chuẩn mực di sản & cảnh báo sai lệch văn hóa"
+                >
+                  <span className="material-symbols-outlined text-[13px] sm:text-[14px]">
+                    {authenticityAssessment.badgeIcon}
+                  </span>
+                  <span>{authenticityAssessment.badgeTitle}</span>
+                  <span className="opacity-80 font-mono text-[9px]">({authenticityAssessment.score}đ)</span>
+                </button>
               </div>
 
               <div className="flex items-center gap-1.5 shrink-0">
@@ -476,6 +648,7 @@ export function App() {
                 </div>
               </div>
             </div>
+
 
             {/* MOBILE ONLY SEGMENTED CONTROLLER (< lg screens) */}
             <div className="lg:hidden flex items-center justify-between gap-1 p-1 bg-surface-container-low rounded-xl border border-outline-variant/30 mb-2 shadow-2xs">
@@ -523,7 +696,11 @@ export function App() {
             </div>
 
             {/* Thanh Cố Vấn Bối Cảnh & Thời Tiết (Audition Gen Z) */}
-            <WeatherOccasionBar onApplyRecommendation={handleApplyWeatherRecommendation} />
+            <WeatherOccasionBar
+              currentBackdropId={selectedBackdrop}
+              onSelectBackdrop={setSelectedBackdrop}
+              onApplyRecommendation={handleApplyWeatherRecommendation}
+            />
 
             {/* ADAPTIVE WORKSPACE: Mobile Studio View vs Desktop 3-Column Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 sm:gap-3 items-start">
@@ -552,6 +729,8 @@ export function App() {
               {/* CENTER COLUMN: Sàn Thử Đồ (Desktop 6 cols | Mobile: Luôn hiển thị ở trên cùng order-1) */}
               <div className="lg:col-span-6 lg:order-2 order-1 flex justify-center w-full">
                 <DressCanvas
+                  backdropId={selectedBackdrop}
+                  onSelectBackdrop={setSelectedBackdrop}
                   equippedOutfit={equippedOutfit}
                   layerVisibility={layerVisibility}
                   colorState={colorState}
@@ -568,8 +747,6 @@ export function App() {
                   isMissingBottom={culturalCheck.isMissingBottom}
                   culturalWarningMsg={culturalCheck.warningMessage}
                   onAutoEquipModestBottom={handleAutoEquipModestBottom}
-                  userFaceConfig={userFaceConfig}
-                  onOpenFaceModal={() => setIsFaceModalOpen(true)}
                   onOpenCulturalStory={handleOpenCulturalStory}
                   isABMode={isABMode}
                   onToggleABMode={handleToggleABMode}
@@ -579,6 +756,8 @@ export function App() {
                   onSaveToSetB={handleSaveToSetB}
                   activeSlot={activeSlot}
                   onSwitchSlot={handleSwitchSlot}
+                  onOpenAuthenticityModal={() => setIsAuthenticityModalOpen(true)}
+                  authenticityNoticeCount={authenticityAssessment.conflicts.length}
                 />
               </div>
 
@@ -635,9 +814,8 @@ export function App() {
         onClose={() => setIsSnapshotOpen(false)}
         canvasRef={canvasRef}
         isMissingBottom={culturalCheck.isMissingBottom}
-        outfitName={currentPreset?.name || "Cổ Phục Đại Việt"}
-        eraName={getItemCulturalStory(null, currentSetId).era}
-        userFaceConfig={userFaceConfig}
+        outfitName={snapshotOutfitName}
+        eraName={snapshotEraName}
         colorState={colorState}
         equippedOutfit={equippedOutfit}
         onAutoEquipModestBottom={handleAutoEquipModestBottom}
@@ -651,15 +829,8 @@ export function App() {
         colorState={colorState}
         onApplyPresetWithColors={handleApplyPresetWithColors}
         showToast={showToast}
-        userFaceConfig={userFaceConfig}
-      />
-
-      {/* Face Upload & Avatar Customization Modal */}
-      <FaceUploadModal
-        isOpen={isFaceModalOpen}
-        onClose={() => setIsFaceModalOpen(false)}
-        currentFaceConfig={userFaceConfig}
-        onApplyFaceConfig={handleApplyFaceConfig}
+        initialTab={aiStylistInitialTab}
+        initialFaceMode={aiStylistInitialFaceMode}
       />
 
       {/* Cultural Heritage Story Modal */}
@@ -668,6 +839,20 @@ export function App() {
         onClose={() => setIsStoryModalOpen(false)}
         item={selectedStoryItem}
         currentSetId={currentSetId}
+      />
+
+      {/* Audition Dossier Modal */}
+      <AuditionDossierModal
+        isOpen={isAuditionDossierOpen}
+        onClose={() => setIsAuditionDossierOpen(false)}
+      />
+
+      {/* Cultural Authenticity Assessment Modal */}
+      <CulturalAuthenticityModal
+        isOpen={isAuthenticityModalOpen}
+        onClose={() => setIsAuthenticityModalOpen(false)}
+        assessment={authenticityAssessment}
+        onAutoEquipModestBottom={handleAutoEquipModestBottom}
       />
 
       {/* Toast Notification — Smart Icon + Mobile Center */}

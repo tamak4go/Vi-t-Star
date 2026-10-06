@@ -2,12 +2,15 @@
 import React, { useState } from 'react';
 import {
   CATEGORY_LABELS,
+  HERITAGE_REGIONS,
   LAYER_MAP,
   OUTFIT_PRESETS,
   WARDROBE_ITEMS,
+  getSetRegion,
   type Category,
   type ColorState,
   type EquippedOutfit,
+  type HeritageRegion,
   type LayerStateMap,
   type WardrobeItem,
 } from '../data/dressroomConfig';
@@ -57,16 +60,25 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
   onOpenCulturalStory,
 }) => {
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
+  const [selectedRegion, setSelectedRegion] = useState<HeritageRegion>('all');
 
-  // Lọc trang phục theo tab (bỏ qua base mannequin)
+  // Lọc trang phục theo cả tab danh mục VÀ vùng miền địa phương
   const displayItems = WARDROBE_ITEMS.filter((item) => {
     if (item.category === 'base') return false;
+
+    // Lọc theo vùng miền / địa phương (Tiêu chí đề thi Audition)
+    if (selectedRegion !== 'all') {
+      const itemRegion = getSetRegion(item.setId);
+      if (itemRegion !== selectedRegion) return false;
+    }
+
     if (activeTab === 'all') return true;
     if (activeTab === 'accessories') {
       return item.category === 'neckwear' || item.category === 'handheld';
     }
     return item.category === activeTab;
   });
+
 
   return (
     <section className="flex flex-col gap-2 bg-surface-container-lowest rounded-xl p-3 shadow-sm w-full border border-outline-variant/30">
@@ -142,8 +154,37 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
         </button>
       </div>
 
+      {/* Heritage Region Filter Bar (Tiêu chí Đề thi Audition: Khám phá & Phối theo Địa Phương) */}
+      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1 px-1.5 bg-[#FAF6EE] rounded-lg border border-[#C59B27]/30 shadow-2xs">
+        <span className="text-[9px] font-bold tracking-wider text-[#AE3022] uppercase shrink-0 flex items-center gap-1">
+          <span className="material-symbols-outlined text-[13px]">explore</span>
+          <span>ĐỊA PHƯƠNG:</span>
+        </span>
+        {HERITAGE_REGIONS.map((region) => {
+          const isSelected = selectedRegion === region.id;
+          return (
+            <button
+              key={region.id}
+              type="button"
+              id={`region-filter-${region.id}`}
+              onClick={() => setSelectedRegion(region.id)}
+              className={`px-2 py-0.5 rounded text-[10.5px] shrink-0 flex items-center gap-1 transition-all cursor-pointer ${
+                isSelected
+                  ? 'bg-[#1a2a44] text-[#eed182] font-bold shadow-xs'
+                  : 'bg-white hover:bg-surface-container text-[#4a3d34] border border-[#e2d8c6]'
+              }`}
+              title={region.description}
+            >
+              <span className="material-symbols-outlined text-[12px]">{region.icon}</span>
+              <span>{region.shortLabel}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Category Tabs: Grid 4x2 so all 8 tabs fit completely without cutoffs */}
       <div className="grid grid-cols-4 gap-1 p-1 bg-surface-container-low rounded-lg">
+
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           const isBottomAlert = tab.id === 'bottom' && isMissingBottom;

@@ -3,7 +3,6 @@
 import React, { useState, useRef } from 'react';
 import { toPng } from 'html-to-image';
 import confetti from 'canvas-confetti';
-import type { UserFaceConfig } from './FaceUploadModal';
 import type { EquippedOutfit, ColorState } from '../data/dressroomConfig';
 import { mapHexToNguHanh } from '../services/culturalKnowledgeService';
 
@@ -15,7 +14,6 @@ interface SnapshotModalProps {
   outfitName?: string;
   eraName?: string;
   onAutoEquipModestBottom?: () => void;
-  userFaceConfig?: UserFaceConfig;
   colorState?: ColorState;
   equippedOutfit?: EquippedOutfit;
 }
@@ -28,7 +26,6 @@ export const SnapshotModal: React.FC<SnapshotModalProps> = ({
   outfitName,
   eraName,
   onAutoEquipModestBottom,
-  userFaceConfig,
   colorState = {},
   equippedOutfit = {},
 }) => {
@@ -185,10 +182,14 @@ export const SnapshotModal: React.FC<SnapshotModalProps> = ({
               <span className="text-xs text-[#75777e]">Đang kết xuất hình ảnh...</span>
             )}
 
-            {/* Dấu Triện son đỏ góc dưới phải */}
-            <div className="absolute bottom-2 right-2 w-8 h-8 rounded bg-[#AE3022] text-[#FAF6EE] flex flex-col items-center justify-center font-bold text-[7px] leading-tight shadow-md border border-[#C59B27]/50 pointer-events-none">
-              <span>BẢO</span>
-              <span>CHỨNG</span>
+            {/* Dấu Triện son đỏ góc dưới phải (Icon-only) */}
+            <div
+              className="absolute bottom-2 right-2 w-7 h-7 sm:w-8 sm:h-8 rounded-md bg-[#AE3022] text-[#FAF6EE] flex items-center justify-center shadow-md border border-[#C59B27]/70 ring-1 ring-inset ring-[#C59B27]/40 pointer-events-none"
+              title="Bảo chứng Việt phục"
+            >
+              <span className="material-symbols-outlined text-[17px] sm:text-[19px] text-[#FAF6EE]">
+                verified
+              </span>
             </div>
           </div>
 
@@ -201,25 +202,17 @@ export const SnapshotModal: React.FC<SnapshotModalProps> = ({
               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#1a2a44] text-[#eed182] border border-[#c59b27]/30">
                 {eraName || 'Di Sản Dân Tộc'}
               </span>
-              {Object.values(equippedOutfit).filter(Boolean).length > 0 && (
+              {Object.values(equippedOutfit).filter((it) => it && it.category !== 'base').length > 0 ? (
                 <span className="px-2 py-0.5 rounded-full text-[9.5px] font-medium bg-[#FAF6EE] text-[#5c4a3e] border border-[#C59B27]/40">
-                  {Object.values(equippedOutfit).filter(Boolean).length} Món Y Phục
+                  {Object.values(equippedOutfit).filter((it) => it && it.category !== 'base').length} Món Y Phục
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[9.5px] font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant/30">
+                  0 Món Y Phục
                 </span>
               )}
             </div>
           </div>
-
-          {/* Creator / Model Pill (if user custom face is enabled) */}
-          {userFaceConfig?.enabled && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#C59B27]/40 shadow-xs">
-              <div className="w-5 h-5 rounded-full overflow-hidden border border-[#AE3022]">
-                <img src={userFaceConfig.src} alt="Model" className="w-full h-full object-cover" />
-              </div>
-              <span className="text-[10.5px] font-semibold text-[#1a2a44]">
-                Người Mẫu: <span className="text-[#AE3022] font-bold">{userFaceConfig.name}</span>
-              </span>
-            </div>
-          )}
 
           {/* Color Palette Swatches (HEX) */}
           {activeHexes.length > 0 && (
