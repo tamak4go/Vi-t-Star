@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã push Git lên `origin/main` (commit `585dbd0`) và tự động deploy Production thành công 100% trên Vercel: `https://vietstar.vercel.app` (Deployment ID: `dpl_FCRuhaASUa6s4opc9jTAiisYGQFz`, status `● Ready`). API backend `/api/stitch/ping` kết nối Google Stitch Engine hoàn hảo với độ trễ 99ms. Dev server cục bộ chạy tại `http://127.0.0.1:5173/`.
+> **Trạng thái hiện tại**: Hoàn thành 100% hệ thống Quét Di Sản & Thẩm Định Động Cho Poster AI (Trích xuất pixel thực tế qua Canvas HTML5, bóc tách cấu trúc theo prompt, loại bỏ ghim giả và nút ép mẫu mannequin). Build xanh 100% (`tsc -b && vite build` trong 1.20s, 1912 modules, 0 error). Dev server đang chạy nền tại `http://127.0.0.1:5173/`, ping Google Stitch Cloud thành công (3384ms).
 
 ---
 
@@ -10,6 +10,31 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+---
+
+### ⏱️ Phiên 2026-10-06 16:15 | Nâng Cấp Hệ Thống AI Quét Động & Thẩm Định Di Sản Poster - Loại Bỏ 100% Tọa Độ Ghim Giả & Ép Mẫu Mannequin - Build Pass 100%
+- **Yêu cầu của User**: "tính năng quet poster làm kiểu gì vậy gen ảnh khác sao ghim được rồi gen ra còn đề xuất lên magnqin là cái gì, làm lại tôi mối sau khi gen ra ảnh rồi sẽ có 1 ai quét ( tùy theo ảnh gen , 0 được tự ghim vị trí quét và bịa) nghiên cứu để tôi duyệt plan" -> User duyệt "ok".
+- **Thực hiện chi tiết**:
+  1. **Trích Xuất Bảng Màu Pixel Thực Tế Bằng HTML5 Canvas 2D (`src/services/imageColorExtractor.ts`)**:
+     - Đọc trực tiếp từ ảnh render của Google Stitch / Atelier qua bộ đệm proxy `/api/stitch/proxy-image` chống CORS canvas tainting.
+     - Lượng tử hóa và gom cụm màu (color quantization) trên lưới pixel thực tế, trích xuất 4-5 mã màu HEX chủ đạo thực thụ của ảnh.
+     - Ánh xạ chính xác vào hệ thống tên màu truyền thống Việt Nam (Đỏ Chu Sa Cung Đình, Chàm Lam Sĩ Phu, Vàng Kim Hoàng Gia, Lãnh Mỹ A...) và Ngũ Hành (Kim, Mộc, Thủy, Hỏa, Thổ).
+  2. **Quét AI Thẩm Định Di Sản Động (`src/services/posterAnalysisService.ts`)**:
+     - Loại bỏ hoàn toàn các tọa độ ghim cứng x, y và các archetype khuôn mẫu.
+     - Phân tích bóc tách thành phần theo nội dung prompt thực tế của User và bảng màu pixel thực: Thượng Y (Áo Nhật Bình, Áo Tấc, Ngũ Thân, Áo Dài, Bà Ba...), Hạ Y (kèm kiểm tra thuần phong mỹ tục), Phụ kiện (Nón lá, Khăn đóng, Kiềng bạc...), Không gian di sản.
+     - Đánh giá độ chuẩn mực văn hóa (Authentic / Gen Z Remix / Lưu ý thuần phong mỹ tục) và bối cảnh sự kiện thực tế.
+  3. **Giao Diện Hồ Sơ Thẩm Định Poster Di Sản (`src/components/PosterCulturalInspector.tsx`)**:
+     - Hiển thị 4 tab phân tích chuyên sâu: Bóc tách thành phần y phục, Bảng màu pixel thực tế, Điển tích lịch sử, và Quy chuẩn lễ nghi.
+     - Tích hợp tính năng Tải Báo Cáo Thẩm Định Di Sản (.txt).
+     - Loại bỏ hoàn toàn nút đề xuất "Thử lên mannequin".
+  4. **Tích Hợp Trực Quan & Tia Quét Laser Động Trong `AIStylistModal.tsx` & `src/index.css`**:
+     - Loại bỏ toàn bộ các nút ghim tròn giả lập trên ảnh poster. Ảnh giữ nguyên vẻ đẹp toàn vẹn, nguyên bản.
+     - Thêm hiệu ứng tia laser quét hoàng gia (`animate-scan-laser`) quét dọc thân ảnh khi đang phân tích pixel.
+     - Tự động chạy quét thẩm định khi sinh ảnh mới hoặc khi chọn bất kỳ ảnh nào trong bộ sưu tập Lookbook.
+  5. **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+     - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 2.71s (1912 modules transformed, 0 error).
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
 
 ---
 

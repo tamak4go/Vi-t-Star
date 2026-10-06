@@ -140,3 +140,22 @@
   animation: shimmer 1.4s ease-in-out infinite;
 }
 
+/* Laser scanner animation */
+@keyframes scan-laser {
+  0% {
+    top: 0%;
+    opacity: 0.8;
+  }
+  50% {
+    top: 96%;
+    opacity: 1;
+  }
+  100% {
+    top: 0%;
+    opacity: 0.8;
+  }
+}
+.animate-scan-laser {
+  position: absolute;
+  animation: scan-laser 2.2s ease-in-out infinite;
+}

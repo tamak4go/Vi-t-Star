@@ -1,6 +1,6 @@
 // src/components/AIStylistModal.tsx
 // Modal Cố Vấn Phối Đồ AI & Studio Poster Thời Trang Google Stitch
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   Sparkles,
   Wand2,
@@ -46,9 +46,10 @@ import {
   OUTFIT_PRESETS,
 } from "../data/dressroomConfig";
 import {
-  analyzePosterCulturally,
-  type PosterCulturalAnalysis,
+  scanPosterCulturally,
+  type DynamicPosterAnalysis,
 } from "../services/posterAnalysisService";
+import { extractDominantColorsFromImage } from "../services/imageColorExtractor";
 import { PosterCulturalInspector } from "./PosterCulturalInspector";
 
 interface AIStylistModalProps {
@@ -121,9 +122,9 @@ export function AIStylistModal({
   const [isUploadingFace, setIsUploadingFace] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Quản lý Điểm Ghim Chú Thích & Thẩm Định Di Sản Poster AI
-  const [showHotspots, setShowHotspots] = useState<boolean>(true);
-  const [selectedHotspotId, setSelectedHotspotId] = useState<string | null>(null);
+  // Quản lý Thẩm Định Di Sản & Quét Màu Thực Tế Cho Poster AI (Không bịa đặt)
+  const [isScanningPoster, setIsScanningPoster] = useState<boolean>(false);
+  const [dynamicPosterAnalysis, setDynamicPosterAnalysis] = useState<DynamicPosterAnalysis | null>(null);
 
   // Đồng bộ tab và chế độ gương mặt khi modal được kích hoạt mở từ bên ngoài
   useEffect(() => {
@@ -178,32 +179,48 @@ export function AIStylistModal({
     [equippedOutfit, colorState]
   );
 
-  // AI Thẩm định & phân tích di sản cho Poster hiện tại
-  const posterAnalysis = useMemo<PosterCulturalAnalysis | null>(() => {
-    if (!generatedScreen) return null;
-    return analyzePosterCulturally({
-      posterId: generatedScreen.id,
-      posterTitle: generatedScreen.title,
-      promptText: customPrompt || generatedScreen.title,
-      sourceMode: outfitSourceMode,
-      equippedOutfit,
-      colorState,
-      selectedPresetId: selectedPresetOutfitId,
-      customOutfitInput,
-      selectedOccasionId,
-      selectedBackgroundId,
-    });
-  }, [
-    generatedScreen,
-    customPrompt,
-    outfitSourceMode,
-    equippedOutfit,
-    colorState,
-    selectedPresetOutfitId,
-    customOutfitInput,
-    selectedOccasionId,
-    selectedBackgroundId,
-  ]);
+  // Quét thẩm định di sản động dựa trên prompt và màu sắc thực tế từ pixel ảnh (Không bịa đặt)
+  const executePosterScan = useCallback(
+    async (screen: StitchScreenResult | null) => {
+      if (!screen || !screen.screenshotUrl) {
+        setDynamicPosterAnalysis(null);
+        return;
+      }
+
+      setIsScanningPoster(true);
+      try {
+        // 1. Trích xuất màu sắc pixel thực tế từ ảnh Canvas (không bịa màu)
+        const extractedColors = await extractDominantColorsFromImage(screen.screenshotUrl, 5);
+
+        // 2. Quét thẩm định di sản động
+        const analysis = scanPosterCulturally({
+          posterId: screen.id,
+          posterTitle: screen.title,
+          promptText: customPrompt || screen.title,
+          customUserInput: customOutfitInput,
+          selectedOccasionId,
+          selectedBackgroundId,
+          extractedColors,
+        });
+
+        setDynamicPosterAnalysis(analysis);
+      } catch (err) {
+        console.error("[executePosterScan] Lỗi quét di sản poster:", err);
+      } finally {
+        setIsScanningPoster(false);
+      }
+    },
+    [customPrompt, customOutfitInput, selectedOccasionId, selectedBackgroundId]
+  );
+
+  // Tự động quét khi có ảnh poster mới hoặc khi chọn poster khác trong bộ sưu tập
+  useEffect(() => {
+    if (generatedScreen) {
+      executePosterScan(generatedScreen);
+    } else {
+      setDynamicPosterAnalysis(null);
+    }
+  }, [generatedScreen, executePosterScan]);
 
   // Giai đoạn xử lý thích ứng theo tiến trình Google Cloud (~40-60s)
   const getGenerationStage = (sec: number) => {
@@ -1654,8 +1671,8 @@ export function AIStylistModal({
 
                   {generatedScreen?.screenshotUrl ? (
                     <div className="relative w-full h-full flex items-center justify-center p-2 group">
-                      {/* Tag phân biệt nguồn ảnh ở góc trên */}
-                      <div className="absolute top-3 left-3 z-5 flex items-center gap-1.5">
+                      {/* Tag phân biệt nguồn ảnh & trạng thái quét */}
+                      <div className="absolute top-3 left-3 z-5 flex items-center gap-1.5 flex-wrap">
                         {isFreshlyGenerated ? (
                           <div className="px-2.5 py-1 bg-emerald-950/85 backdrop-blur-md text-emerald-300 text-[10.5px] font-bold rounded-lg border border-emerald-500/60 shadow-lg flex items-center gap-1.5 animate-in fade-in">
                             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -1666,9 +1683,21 @@ export function AIStylistModal({
                             <span>📜 Mẫu tham khảo có sẵn</span>
                           </div>
                         )}
+
+                        {isScanningPoster ? (
+                          <div className="px-2.5 py-1 bg-amber-950/85 backdrop-blur-md text-amber-300 text-[10px] font-bold rounded-lg border border-amber-500/60 shadow-lg flex items-center gap-1 animate-pulse">
+                            <Sparkles className="w-3 h-3 text-[#c59b27] animate-spin" />
+                            <span>Đang quét di sản pixel...</span>
+                          </div>
+                        ) : dynamicPosterAnalysis ? (
+                          <div className="px-2.5 py-1 bg-[#1a2a44]/90 backdrop-blur-md text-[#eed182] text-[10px] font-bold rounded-lg border border-[#c59b27]/60 shadow-lg flex items-center gap-1">
+                            <Sparkles className="w-3 h-3 text-[#c59b27]" />
+                            <span className="truncate max-w-[180px] sm:max-w-[260px]">{dynamicPosterAnalysis.summaryTitle}</span>
+                          </div>
+                        ) : null}
                       </div>
 
-                      <div className="relative inline-flex items-center justify-center max-h-[420px] max-w-full">
+                      <div className="relative inline-flex items-center justify-center max-h-[420px] max-w-full overflow-hidden rounded-lg">
                         <img
                           src={generatedScreen.screenshotUrl}
                           alt="Stitch Generated Fashion Poster"
@@ -1683,53 +1712,16 @@ export function AIStylistModal({
                           className="max-h-[420px] max-w-full object-contain rounded-lg shadow-2xl transition-transform duration-300 group-hover:scale-[1.01]"
                         />
 
-                        {/* Điểm Ghim Chú Thích Tương Tác Trực Quan Trên Poster */}
-                        {showHotspots && posterAnalysis && posterAnalysis.hotspots.map((hs) => {
-                          const isSelected = selectedHotspotId === hs.id;
-                          return (
-                            <div
-                              key={hs.id}
-                              style={{ left: `${hs.x}%`, top: `${hs.y}%` }}
-                              className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group/pin"
-                            >
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedHotspotId(isSelected ? null : hs.id);
-                                }}
-                                className={`relative w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-lg cursor-pointer ${
-                                  isSelected
-                                    ? "bg-[#b93829] text-white ring-4 ring-[#c59b27] scale-125 z-20 shadow-[0_0_15px_rgba(185,56,41,0.8)]"
-                                    : "bg-[#1a2a44]/90 text-[#eed182] hover:bg-[#b93829] hover:text-white border border-[#c59b27]/80 hover:scale-110"
-                                }`}
-                                title={`${hs.number}. ${hs.title}`}
-                              >
-                                <span className="relative z-1">{hs.number}</span>
-                                <span className="absolute inset-0 rounded-full animate-ping bg-[#c59b27]/40 pointer-events-none" />
-                              </button>
-
-                              {/* Tooltip / Mini Popover khi hover hoặc click */}
-                              <div
-                                className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 sm:w-56 p-2 rounded-xl bg-slate-950/95 backdrop-blur-md text-white border border-[#c59b27]/70 shadow-2xl transition-all z-30 pointer-events-none ${
-                                  isSelected
-                                    ? "opacity-100 visible scale-100"
-                                    : "opacity-0 invisible scale-95 group-hover/pin:opacity-100 group-hover/pin:visible group-hover/pin:scale-100"
-                                }`}
-                              >
-                                <div className="flex items-center justify-between text-[10px] font-bold text-[#eed182] border-b border-white/10 pb-1 mb-1">
-                                  <span className="truncate">{hs.number}. {hs.title}</span>
-                                  <span className="text-[8px] px-1 py-0.2 bg-[#b93829] text-white rounded shrink-0">{hs.categoryLabel}</span>
-                                </div>
-                                <p className="text-[10px] text-slate-300 line-clamp-2 leading-tight">{hs.meaning}</p>
-                                <p className="text-[9px] text-emerald-400 mt-1 line-clamp-1 italic">💡 {hs.etiquette}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {/* Tia Laser Quét Động Khi isScanningPoster === true (Không ghim tọa độ giả) */}
+                        {isScanningPoster && (
+                          <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-lg z-10">
+                            <div className="w-full h-1 bg-gradient-to-r from-transparent via-[#c59b27] to-transparent shadow-[0_0_15px_#c59b27,0_0_30px_#b93829] animate-scan-laser" />
+                            <div className="absolute inset-0 bg-[#c59b27]/5 pointer-events-none" />
+                          </div>
+                        )}
                       </div>
 
-                      <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                      <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10">
                         <a
                           href={generatedScreen.screenshotUrl}
                           download={`vietstar-stitch-lookbook-${Date.now()}.png`}
@@ -1754,16 +1746,12 @@ export function AIStylistModal({
                   )}
                 </div>
 
-                {/* 6. BẢNG AI THẨM ĐỊNH & CHÚ THÍCH DI SẢN CHO POSTER (ĐỒNG BỘ ĐẦY ĐỦ TÍNH NĂNG NHƯ DRESSROOM) */}
-                {posterAnalysis && (
+                {/* 6. BẢNG AI THẨM ĐỊNH & CHÚ THÍCH DI SẢN CHO POSTER (QUÉT THỰC TẾ THEO ẢNH & PROMPT) */}
+                {dynamicPosterAnalysis && (
                   <PosterCulturalInspector
-                    analysis={posterAnalysis}
-                    showHotspots={showHotspots}
-                    onToggleHotspots={() => setShowHotspots(!showHotspots)}
-                    selectedHotspotId={selectedHotspotId}
-                    onSelectHotspot={setSelectedHotspotId}
-                    onApplyPresetToDressroom={onApplyPresetWithColors}
-                    onCloseModal={onClose}
+                    analysis={dynamicPosterAnalysis}
+                    isScanning={isScanningPoster}
+                    onScanAgain={() => executePosterScan(generatedScreen)}
                     showToast={showToast}
                   />
                 )}
