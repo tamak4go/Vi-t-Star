@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Hoàn thành 100% hệ thống Quét Di Sản & Thẩm Định Động Cho Poster AI (Trích xuất pixel thực tế qua Canvas HTML5, bóc tách cấu trúc theo prompt, loại bỏ ghim giả và nút ép mẫu mannequin). Đã commit `2e13976` và push thành công lên `origin/main`. Production Vercel: `https://vietstar.vercel.app` (API `/api/stitch/ping` 414ms). Dev server cục bộ chạy tại `http://127.0.0.1:5173/`.
+> **Trạng thái hiện tại**: Đã dọn dẹp sạch sẽ toàn bộ mã và tài nguyên thừa thãi (xóa App.css boilerplate, svg template, chuyển test script vào scratch/), sửa lỗi vi phạm React Hook trong ColorTuningPanel, build pass 100% và chuẩn bị push git lên origin/main. Production Vercel: `https://vietstar.vercel.app`. Dev server cục bộ: `http://127.0.0.1:5173/`.
 
 ---
 
@@ -10,6 +10,52 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-08 09:55 | Dọn Dẹp Toàn Bộ Tệp Thừa Thãi, Tinh Gọn Dự Án Chuẩn Mực Ponytail & Đóng Gói Push Git
+- **Yêu cầu của User**: "xóa hết các thừa thãi và push git".
+- **Thực hiện chi tiết**:
+  1. **Xóa bỏ các tệp tin boilerplate & tài nguyên rác**:
+     - Xóa `src/App.css` (185 dòng CSS mặc định của template Vite không sử dụng).
+     - Xóa `src/assets/react.svg` và `src/assets/vite.svg` (biểu tượng mẫu của Vite/React không dùng). Xóa thư mục rỗng `src/assets`.
+     - Di chuyển các script thử nghiệm scratch (`src/server/test_conn.mjs`, `src/server/test_face_edit.mjs`, `src/server/test_full_pipeline.mjs`) vào thư mục `scratch/` (đã có trong `.gitignore`) để không làm rác lịch sử git repository.
+  2. **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+     - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 1.87s (1912 modules sạch sẽ).
+     - `npx oxlint`: **PASS 0 ERROR (exit code 0)**.
+  3. **Đóng gói Git & Push Remote `origin/main`**:
+     - `git add .` và commit chuẩn hóa: `fix: clean unused boilerplate assets, resolve conditional hook in ColorTuningPanel, and refine code hygiene`.
+     - `git push origin main`.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
+
+### ⏱️ Phiên 2026-10-08 09:50 | Rà Soát Toàn Diện Lỗi Kỹ Thuật (Sửa Lỗi React Hook Trong ColorTuningPanel), Kiểm Tra Toàn Bộ 74 Assets & Thẩm Định Đề Tài Dưới Góc Nhìn Giám Khảo Con Người
+- **Yêu cầu của User**: "check xem còn lỗi nào 0? xem với đề tài còn đã ok chưa với tư cách là giám khảo là con người".
+- **Thực hiện chi tiết & Rà soát kỹ thuật (Technical Audit)**:
+  1. **Phát hiện & Sửa lỗi vi phạm React Rules of Hooks (`src/components/ColorTuningPanel.tsx`)**:
+     - Phát hiện lỗi nghiêm trọng: `useState(copied)` được gọi sau lệnh `if (!currentItem) return ...` (gọi hook có điều kiện). Nếu người dùng bấm "Đặt Lại" (cởi hết trang phục), `currentItem` chuyển sang undefined dẫn tới React crash runtime với lỗi: *"Rendered fewer hooks than expected"*.
+     - Đã dời `useState` lên đầu component trước mọi rẽ nhánh điều kiện.
+  2. **Dọn dẹp code & Linter (`SnapshotModal.tsx`)**:
+     - Loại bỏ tham số rác `_` không sử dụng trong hàm filter hex của `colorState`.
+     - Chạy `npx oxlint -D error`: **0 ERROR (exit code 0)**.
+  3. **Kiểm tra tính toàn vẹn của tài nguyên đồ họa (Asset Integrity)**:
+     - Viết script kiểm tra thực tế 74 đường dẫn file hình ảnh SVG/PNG của 10 bộ cổ phục trong `src/data/dressroomConfig.ts`: **100% 74/74 tệp tồn tại đầy đủ trong `public/assets/`**, 0 link chết.
+  4. **Kiểm thử thực tế Build (Rule 0)**:
+     - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 1.97s (1912 modules transformed, 0 error).
+  5. **Bản thẩm định đề tài Audition "Việt phục Remix - Gen Z" (Human Jury Evaluation)**:
+     - Đánh giá toàn diện 5 trụ cột: Bám sát đề tài (9.8/10), Chiều sâu văn hóa & Điển tích, Trải nghiệm Paper doll 9 lớp & HSL ngũ hành, Hệ thống Cảnh Báo Lệch Chuẩn Văn Hóa Đa Chiều (`CulturalAuthenticityGuard`), và Khả năng ứng dụng thực tế.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
+
+### ⏱️ Phiên 2026-10-06 16:47 | Giải Đáp Thắc Mắc & Tách Bạch Ngữ Cảnh Workspace Giữa VietStar Và Gallery App
+- **Yêu cầu của User**: "ủa sao cứ bị lẫn lộn bên gallery vô vietstar project vậy?"
+- **Điều tra nguyên nhân gốc rễ (Root Cause Analysis)**:
+  1. Cửa sổ Antigravity IDE hiện tại có root workspace là `c:\Users\ngtam\Downloads\vietstar`.
+  2. Tuy nhiên, User mở đồng thời file của cả hai dự án trên thanh tab soạn thảo (`c:\Users\ngtam\Downloads\gallery app\PLAN_GALLERY_APP.md` và `c:\Users\ngtam\Downloads\vietstar\src\services\imageColorExtractor.ts`).
+  3. IDE tự động đính kèm metadata danh sách các tab đang mở (`Other open documents`) vào mỗi tin nhắn prompt, khiến ngữ cảnh của cả 2 dự án cùng hiện diện trước Agent.
+  4. Trước đó, phiên chat phân tích CH Play Gallery App (`c3083640`) và phiên chat của VietStar (`bffeef08`) diễn ra liên tiếp trong cùng một cửa sổ IDE, dẫn tới việc Agent bị đọc chéo SESSION_LOG và tài liệu giữa 2 thư mục.
+  5. Đã rà soát: Thư mục mã nguồn `vietstar` hoàn toàn sạch, không bị ghi đè hay dính bất kỳ file rác nào của `gallery app`.
+- **Giải pháp & Khuyến nghị**: Làm rõ chi tiết với User và hướng dẫn tách hẳn 2 cửa sổ/workspace riêng biệt để IDE và Agent không gửi kèm file chéo.
 
 ---
 

@@ -32,6 +32,8 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
   const currentItem = equippedOutfit[activeCategory];
   const categoryLabel = CATEGORY_LABELS[activeCategory];
 
+  const [copied, setCopied] = useState(false);
+
   if (!currentItem) {
     return (
       <div className="bg-surface-container-lowest rounded-xl p-3 shadow-sm flex flex-col gap-1.5 border border-outline-variant/30 text-center py-4">
@@ -47,7 +49,6 @@ export const ColorTuningPanel: React.FC<ColorTuningPanelProps> = ({
   const currentColor = colorState[currentItem.id] || currentItem.defaultColor || '#AE3022';
   const currentBrightness = brightnessState[currentItem.id] || 0;
   const isCustomized = Boolean(colorState[currentItem.id] && colorState[currentItem.id] !== currentItem.defaultColor);
-  const [copied, setCopied] = useState(false);
 
   const handleCopyHex = () => {
     navigator.clipboard.writeText(currentColor.toUpperCase()).then(() => {

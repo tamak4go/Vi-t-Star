@@ -58,8 +58,8 @@ export const SnapshotModal: React.FC<SnapshotModalProps> = ({
   if (!isOpen) return null;
 
   // Lấy các mã màu nổi bật đang phối
-  const activeColorEntries = Object.entries(colorState).filter(([_, hex]) => Boolean(hex));
-  const activeHexes = Array.from(new Set(activeColorEntries.map(([_, hex]) => hex))).slice(0, 5);
+  const activeColorEntries = Object.entries(colorState).filter(([, hex]) => Boolean(hex));
+  const activeHexes = Array.from(new Set(activeColorEntries.map(([, hex]) => hex))).slice(0, 5);
 
   const handleDownload = async () => {
     // Ưu tiên xuất nguyên thẻ Lookbook Card có đầy đủ bảng màu, tên người mẫu và dấu triện
