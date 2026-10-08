@@ -221,7 +221,7 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
                 {isBackdropOpen && (
                   <div
                     id="backdrop-dropdown-popup"
-                    className="absolute top-full left-0 mt-1 z-50 w-56 sm:w-60 bg-surface-container-lowest rounded-xl shadow-xl border border-[#C59B27]/40 p-1.5 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md"
+                    className="absolute top-full left-0 mt-1 z-30 w-56 sm:w-60 bg-surface-container-lowest rounded-xl shadow-xl border border-[#C59B27]/40 p-1.5 flex flex-col gap-1 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md"
                   >
                     <div className="px-2 py-1 text-[10px] font-bold text-outline uppercase tracking-wider border-b border-outline-variant/20 flex items-center justify-between">
                       <span>Bối Cảnh Sàn Diễn</span>
@@ -363,7 +363,7 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
           <button
             type="button"
             onClick={() => onOpenCulturalStory?.(null)}
-            className="absolute top-3 left-3 z-50 w-9 h-9 sm:w-10 sm:h-10 rounded-md bg-[#AE3022] text-[#FAF6EE] flex items-center justify-center shadow-md border border-[#C59B27]/70 ring-1 ring-inset ring-[#C59B27]/40 hover:scale-105 hover:brightness-110 active:scale-95 transition-all cursor-pointer group"
+            className="absolute top-3 left-3 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-md bg-[#AE3022] text-[#FAF6EE] flex items-center justify-center shadow-md border border-[#C59B27]/70 ring-1 ring-inset ring-[#C59B27]/40 hover:scale-105 hover:brightness-110 active:scale-95 transition-all cursor-pointer group"
             title="Xem điển tích & ý nghĩa văn hóa của bộ trang phục này (Bảo chứng Việt phục)"
             aria-label="Xem điển tích & ý nghĩa văn hóa trang phục"
           >
@@ -444,7 +444,7 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
           {isMissingBottom && (
             <div
               id="cultural-modesty-banner"
-              className="absolute bottom-3 left-3 right-3 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200 bg-[#2d0905]/95 text-white p-2.5 rounded-xl border border-[#c59b27] shadow-[0_4px_20px_rgba(174,48,34,0.45)] backdrop-blur-xs flex flex-col gap-1.5"
+              className="absolute bottom-3 left-3 right-3 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 bg-[#2d0905]/95 text-white p-2.5 rounded-xl border border-[#c59b27] shadow-[0_4px_20px_rgba(174,48,34,0.45)] backdrop-blur-xs flex flex-col gap-1.5"
             >
               <div className="flex items-center justify-between gap-1.5">
                 <div className="flex items-center gap-1.5 text-[#eec14b]">
@@ -481,7 +481,7 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
               type="button"
               id="cultural-authenticity-pill"
               onClick={onOpenAuthenticityModal}
-              className="absolute bottom-3 left-3 right-3 z-40 animate-in fade-in slide-in-from-bottom-2 duration-200 bg-[#2d1b1a]/95 text-amber-100 p-2 sm:p-2.5 rounded-xl border border-amber-500/70 shadow-[0_4px_16px_rgba(217,119,6,0.35)] backdrop-blur-xs flex items-center justify-between gap-2 hover:bg-[#3d2524] transition-all cursor-pointer"
+              className="absolute bottom-3 left-3 right-3 z-30 animate-in fade-in slide-in-from-bottom-2 duration-200 bg-[#2d1b1a]/95 text-amber-100 p-2 sm:p-2.5 rounded-xl border border-amber-500/70 shadow-[0_4px_16px_rgba(217,119,6,0.35)] backdrop-blur-xs flex items-center justify-between gap-2 hover:bg-[#3d2524] transition-all cursor-pointer"
             >
               <div className="flex items-center gap-1.5 text-xs text-left truncate">
                 <span className="material-symbols-outlined text-[17px] text-amber-400 shrink-0">info</span>

@@ -455,7 +455,7 @@ export function App() {
   return (
     <div className="bg-background text-on-surface font-body-md text-body-md min-h-screen selection:bg-secondary-fixed selection:text-on-secondary-fixed">
       {/* Fixed Top Header - Compact & Responsive for Mobile and Desktop */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-primary text-on-primary shadow-[0_4px_20px_rgba(4,21,46,0.25)]">
+      <header className="fixed top-0 left-0 right-0 z-40 bg-primary text-on-primary shadow-[0_4px_20px_rgba(4,21,46,0.25)]">
         <div className="h-13 sm:h-14 w-full px-2.5 sm:px-4 md:px-6 flex items-center justify-between gap-1.5 sm:gap-3">
           {/* Logo & Brand */}
           <div className="flex items-center gap-2 sm:gap-space-md shrink-0">
@@ -544,7 +544,7 @@ export function App() {
       </header>
 
       {/* Main Container */}
-      <main className="w-full pt-13 sm:pt-14 pb-2 bg-surface min-h-[calc(100vh-40px)]">
+      <main className="relative z-10 w-full pt-13 sm:pt-14 pb-2 bg-surface min-h-[calc(100vh-40px)]">
         <div className="flex flex-col w-full">
           <div className="w-full px-2 sm:px-4 md:px-5 py-1.5 sm:py-2">
             {/* Top Studio Context Bar - Responsive One-Line or Compact Two-Lines */}

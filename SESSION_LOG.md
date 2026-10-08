@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã xóa bỏ 100% các phần tử AI slop trên thanh Header (xóa các liên kết giả nav href="#", xóa nút đề án Audition theo yêu cầu, xóa nút bịa Tải Mặt trùng lặp, chuyển toàn bộ các nút thao tác thành icon thuần khiết kèm tooltip, loại bỏ badge trang trí HSL thừa thãi). Đã xóa file AuditionDossierModal.tsx. Build pass 100% (1.81s, 0 error).
+> **Trạng thái hiện tại**: Đã xử lý triệt để lỗi xung đột Stacking Context & Z-Index khiến nút con dấu triện son hoàng gia (và các phần tử canvas) đè lấn lên thanh Header cố định khi cuộn trang xuống. Cấu trúc Stacking Context: Header (fixed z-40), Main container (relative z-10), Canvas stage interior elements (tối đa z-20/z-30), Modals (fixed inset-0 z-50). Build pass 100% (1.85s, 0 error).
 
 ---
 
@@ -10,6 +10,29 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-08 10:25 | Khắc Phục Triệt Để Lỗi Z-Index Nút Con Dấu Triện Son Bị Đè Tràn Lên Header Khi Cuộn Trang - Build Pass 100%
+- **Yêu cầu của User**: "cái nút bị sai khi scoll xuống" (kèm ảnh chụp màn hình nút con dấu triện son đỏ `#AE3022` hình vuông bo góc mang biểu tượng con dấu `verified` trên sàn thử bị trồi đè lên thanh Header màu xanh đen khi người dùng cuộn trang xuống).
+- **Phân tích nguyên nhân gốc rễ (Root Cause Analysis - Rule 0)**:
+  1. Trong `src/components/DressCanvas.tsx`, nút triện son đỏ được đặt class `absolute top-3 left-3 z-50`. Banner thiếu quần (`isMissingBottom`) cũng mang `z-50`.
+  2. Trong `src/App.tsx`, thanh `<header>` cố định cũng có `fixed top-0 left-0 right-0 z-50`. Khung `<main>` không có stacking context riêng (không có `relative z-10`).
+  3. Vì `<main>` đứng sau `<header>` trong DOM tree, các phần tử con mang `z-50` của `<main>` tham gia cùng Root Stacking Context với `<header>`. Theo quy tắc CSS Stacking Context, phần tử đứng sau cùng z-index sẽ được vẽ đè lên phần tử đứng trước. Khi cuộn trang xuống, nút triện son đỏ trượt qua vùng header và bị nổi đè lên trên thanh Header.
+- **Giải pháp & Thực hiện chi tiết (Ponytail Senior Architecture)**:
+  1. **Tách biệt Stacking Context rõ ràng trong `src/App.tsx`**:
+     - Gán `<main className="relative z-10 ...">`: Đóng gói toàn bộ các thành phần trong trang vào một Stacking Context cô lập ở tầng `z-10`.
+     - Điều chỉnh `<header className="fixed top-0 left-0 right-0 z-40 ...">`: Header luôn nằm ở tầng `z-40`, tuyệt đối nằm trên toàn bộ nội dung của `<main>` (tối đa `z-10`) khi cuộn trang.
+     - Các Modal (`SnapshotModal`, `AIStylistModal`, `CulturalStoryModal`, `CulturalAuthenticityModal`) và Toast giữ nguyên ở tầng `z-50`, bảo đảm khi bật Modal thì luôn che phủ 100% cả Header lẫn nội dung trang.
+  2. **Hạ chuẩn Z-Index các phần tử nội bộ sàn thử trong `src/components/DressCanvas.tsx`**:
+     - Nút con dấu triện son đỏ hoàng gia: chuyển từ `z-50` xuống `z-20` (vừa đủ nổi trên nền backdrop `z-[5]` và base mannequin `z-[10]`).
+     - Menu popup chọn bối cảnh (`backdrop-dropdown-popup`): chuyển từ `z-50` xuống `z-30`.
+     - Banner cảnh báo thuần phong mỹ tục (`cultural-modesty-banner`): chuyển từ `z-50` xuống `z-30`.
+     - Pill cảnh báo di sản (`cultural-authenticity-pill`): chuyển từ `z-40` xuống `z-30`.
+- **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 1.85s (1911 modules transformed, 0 error).
+  - `npx oxlint -D error`: **PASS 0 ERROR (exit code 0)**.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
 
 ### ⏱️ Phiên 2026-10-08 10:15 | Triệt Tiêu Toàn Bộ "AI Slop" Trên Header: Xóa Nút Bịa/Vô Năng, Xóa Đề Án Audition, Chuyển Toàn Bộ Nút Thành Icon Tinh Gọn & Push Git
 - **Yêu cầu của User**: "bị ai slop xóa những nút 0 có chức năng, nút bịa, xóa đề án audion, các nut 0 cần ghi chữ chỉ cần icon là đủ , fix sao 0 bị ai slop" (kèm ảnh chụp màn hình thanh Header bị quá tải chữ, dải màu gradient xung đột, các liên kết vô năng và nút trùng lặp).
