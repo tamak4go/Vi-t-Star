@@ -6,9 +6,9 @@
 
 export type LayerId =
   | "base"
+  | "bottom"
   | "shoes"
   | "innerTop"
-  | "bottom"
   | "outerTop"
   | "belt"
   | "neckwear"
@@ -19,8 +19,8 @@ export type Category = LayerId;
 
 export const LAYER_MAP: Record<LayerId, number> = {
   base:      10,
-  shoes:     20,
-  bottom:    30,
+  bottom:    20,
+  shoes:     30,
   innerTop:  40,
   outerTop:  50,
   belt:      60,
@@ -31,7 +31,7 @@ export const LAYER_MAP: Record<LayerId, number> = {
 
 // Thứ tự hiển thị layer trong panel inspector/debug (thấp -> cao)
 export const LAYER_INSPECTOR_ORDER: LayerId[] = [
-  "base", "shoes", "bottom", "innerTop", "outerTop",
+  "base", "bottom", "shoes", "innerTop", "outerTop",
   "belt", "neckwear", "headwear", "handheld",
 ];
 

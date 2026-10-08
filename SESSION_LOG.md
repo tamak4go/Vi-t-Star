@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã xử lý triệt để lỗi xung đột Stacking Context & Z-Index khiến nút con dấu triện son hoàng gia (và các phần tử canvas) đè lấn lên thanh Header cố định khi cuộn trang xuống. Cấu trúc Stacking Context: Header (fixed z-40), Main container (relative z-10), Canvas stage interior elements (tối đa z-20/z-30), Modals (fixed inset-0 z-50). Build pass 100% (1.85s, 0 error).
+> **Trạng thái hiện tại**: Đã hoán đổi chính xác thứ tự layer phục trang giữa Quần (`bottom`: z-20) và Giày (`shoes`: z-30) trong `LAYER_MAP` và `LAYER_INSPECTOR_ORDER`. Giày/boots/ủng platform được hiển thị tự nhiên đè lên trên ống quần, không còn bị quần cắt ngang che mất thân giày. Build pass 100% (2.31s, 0 error).
 
 ---
 
@@ -10,6 +10,26 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-08 10:43 | Hoán Đổi Layer Giày & Quần (Giày Nằm Trên Quần) - Khắc Phục Lỗi Hiển Thị Ủng / Boots Bị Quần Đè Cụt - Build Pass 100%
+- **Yêu cầu của User**: "layer giày vs quần nên hoán đổi" (kèm ảnh chụp mannequin mặc quần đỏ phối cùng đôi boots platform Y2K đen bị ống quần đỏ đè lên trên, cắt ngang cổ boots và khiến phần viền boots xòe ra sau quần).
+- **Phân tích nguyên nhân gốc rễ (Root Cause Analysis - Rule 0)**:
+  1. Trong `src/data/dressroomConfig.ts`, `LAYER_MAP` trước đây cấu hình: `shoes: 20`, `bottom: 30`.
+  2. Do đó, Quần (`bottom`) có z-index cao hơn Giày (`shoes`), dẫn đến việc quần được vẽ đè lên trên giày. Với các loại giày như boots, bốt platform Y2K có ống cổ cao, hoặc hài/guốc có quai, việc bị quần đè lên sẽ che mất chi tiết của giày và gây lỗi thị giác bất hợp lý.
+- **Giải pháp & Thực hiện chi tiết (Ponytail Root-Cause Fix)**:
+  1. **Hoán đổi thứ tự trong `src/data/dressroomConfig.ts`**:
+     - `LAYER_MAP`: Đổi `bottom: 20`, `shoes: 30`.
+     - `LAYER_INSPECTOR_ORDER`: Cập nhật thứ tự hiển thị inspector thành `["base", "bottom", "shoes", "innerTop", "outerTop", ...]`.
+     - `LayerId`: Điều chỉnh union type thành `base | bottom | shoes | ...`.
+  2. **Hiệu ứng tức thì**:
+     - `DressCanvas.tsx` render theo `LAYER_INSPECTOR_ORDER` và `LAYER_MAP`: Giày tự động hiển thị đè lên trên quần, phần cổ boots và chi tiết platform ôm trọn vẹn, tự nhiên.
+     - `LayerInspector.tsx` và `WardrobePanel.tsx` hiển thị đúng badge z-index: Quần (Z:20), Giày (Z:30).
+- **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 2.31s (1911 modules transformed, 0 error).
+  - `npx oxlint -D error`: **PASS 0 ERROR (exit code 0)**.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
 
 ### ⏱️ Phiên 2026-10-08 10:25 | Khắc Phục Triệt Để Lỗi Z-Index Nút Con Dấu Triện Son Bị Đè Tràn Lên Header Khi Cuộn Trang - Build Pass 100%
 - **Yêu cầu của User**: "cái nút bị sai khi scoll xuống" (kèm ảnh chụp màn hình nút con dấu triện son đỏ `#AE3022` hình vuông bo góc mang biểu tượng con dấu `verified` trên sàn thử bị trồi đè lên thanh Header màu xanh đen khi người dùng cuộn trang xuống).
