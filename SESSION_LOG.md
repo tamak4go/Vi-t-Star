@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã dọn dẹp sạch sẽ toàn bộ mã và tài nguyên thừa thãi (xóa App.css boilerplate, svg template, chuyển test script vào scratch/), sửa lỗi vi phạm React Hook trong ColorTuningPanel, build pass 100% và chuẩn bị push git lên origin/main. Production Vercel: `https://vietstar.vercel.app`. Dev server cục bộ: `http://127.0.0.1:5173/`.
+> **Trạng thái hiện tại**: Đã xóa bỏ 100% các phần tử AI slop trên thanh Header (xóa các liên kết giả nav href="#", xóa nút đề án Audition theo yêu cầu, xóa nút bịa Tải Mặt trùng lặp, chuyển toàn bộ các nút thao tác thành icon thuần khiết kèm tooltip, loại bỏ badge trang trí HSL thừa thãi). Đã xóa file AuditionDossierModal.tsx. Build pass 100% (1.81s, 0 error).
 
 ---
 
@@ -10,6 +10,32 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-08 10:15 | Triệt Tiêu Toàn Bộ "AI Slop" Trên Header: Xóa Nút Bịa/Vô Năng, Xóa Đề Án Audition, Chuyển Toàn Bộ Nút Thành Icon Tinh Gọn & Push Git
+- **Yêu cầu của User**: "bị ai slop xóa những nút 0 có chức năng, nút bịa, xóa đề án audion, các nut 0 cần ghi chữ chỉ cần icon là đủ , fix sao 0 bị ai slop" (kèm ảnh chụp màn hình thanh Header bị quá tải chữ, dải màu gradient xung đột, các liên kết vô năng và nút trùng lặp).
+- **Thực hiện chi tiết & Triệt tiêu AI Slop (Zero AI Slop Polish)**:
+  1. **Xóa các nút vô năng & liên kết giả lập (`src/App.tsx`)**:
+     - Xóa toàn bộ khối `<nav>` chứa 3 liên kết `href="#"` giả lập (`Phòng Thử`, `Kho Cổ Phục`, `Bảo Chứng Di Sản`) gây đè lấn thương hiệu bên trái.
+     - Xóa nút `Tải Mặt Sinh Poster` (nút bịa trùng lặp, gây hiện tượng 2 nút camera đỏ/vàng nằm cạnh nhau và chữ "Mặt" tràn viền).
+     - Xóa nút `Đề Án Audition` trên Header theo đúng chỉ đạo rõ ràng của User; xóa bỏ modal và tệp `src/components/AuditionDossierModal.tsx`.
+     - Xóa badge trang trí vô nghĩa `HSL Shading` trên thanh Context bar.
+  2. **Chuyển toàn bộ các nút thao tác thành Icon thuần khiết (Icon-only Buttons)**:
+     - Khối nút Header chuyển thành 5 nút vuông 36x36px chuẩn mực, tinh gọn, không chữ thừa thãi:
+       + `bolt` (⚡ Gen Z Remix - tông tím hoàng cung dịu mắt `#2a1c38`, viền tím `#a855f7`/40, tooltip `Gen Z Remix (Phím X)`).
+       + `casino` (🎲 Phối ngẫu nhiên - kính mờ sang trọng, tooltip `Phối ngẫu nhiên (Phím R)`).
+       + `restart_alt` (🔄 Đặt lại sàn thử / cởi hết - tooltip `Đặt lại sàn thử (Phím Delete)`).
+       + `photo_camera` (📷 Xuất ảnh Lookbook - tooltip `Xuất ảnh Lookbook (Phím S)`).
+       + `auto_awesome` (✨ Cố Vấn AI & Google Stitch Studio - tông đỏ chu sa hoàng gia `#ae3022` viền vàng kim `#c59b27`, tooltip `Cố Vấn AI & Google Stitch Studio`).
+     - Khắc phục 100% tình trạng tràn chữ, xung đột màu neon, trả lại khoảng thở sang trọng, chuẩn mực `ui-ux-pro-max` di sản.
+  3. **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+     - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 1.81s (1911 modules transformed, 0 error). Bundle JS giảm xuống còn 487.73 kB, không còn cảnh báo chunk size.
+     - `npx oxlint -D error`: **PASS 0 ERROR (exit code 0)**.
+  4. **Đóng gói Git & Push Remote `origin/main`**:
+     - `git add -A` và commit chuẩn: `refactor: eliminate header AI slop, remove redundant buttons and audition dossier, convert to icon-first toolbar`.
+     - `git push origin main`.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
 
 ### ⏱️ Phiên 2026-10-08 09:55 | Dọn Dẹp Toàn Bộ Tệp Thừa Thãi, Tinh Gọn Dự Án Chuẩn Mực Ponytail & Đóng Gói Push Git
 - **Yêu cầu của User**: "xóa hết các thừa thãi và push git".

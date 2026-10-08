@@ -1,7 +1,7 @@
 // src/App.tsx
 import { useEffect, useRef, useState } from 'react';
 import { AIStylistModal } from './components/AIStylistModal';
-import { AuditionDossierModal } from './components/AuditionDossierModal';
+
 import { ColorTuningPanel } from './components/ColorTuningPanel';
 import { CulturalAuthenticityModal } from './components/CulturalAuthenticityModal';
 import { CulturalStoryModal } from './components/CulturalStoryModal';
@@ -89,8 +89,7 @@ export function App() {
   });
   const [activeSlot, setActiveSlot] = useState<'A' | 'B'>('A');
 
-  // 4. Hộp thoại Đề Án Audition & Thẩm định chuẩn mực văn hóa (Tiêu chí Đề thi Audition)
-  const [isAuditionDossierOpen, setIsAuditionDossierOpen] = useState(false);
+
   const [isAuthenticityModalOpen, setIsAuthenticityModalOpen] = useState(false);
 
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -475,64 +474,57 @@ export function App() {
                 </span>
               </div>
             </div>
-
-            {/* Nav links (Desktop only) */}
-            <nav className="hidden md:flex items-center gap-1 ml-space-md">
-              <a
-                className="px-space-md py-1.5 rounded-lg bg-surface-tint/30 text-white font-label-md font-semibold flex items-center gap-1.5 transition-colors"
-                href="#"
-              >
-                <span className="material-symbols-outlined text-[18px]">checkroom</span>
-                <span>Phòng Thử</span>
-              </a>
-              <a
-                className="px-space-md py-1.5 rounded-lg text-outline-variant hover:text-white hover:bg-surface-tint/20 font-label-md font-medium transition-colors"
-                href="#"
-              >
-                Kho Cổ Phục
-              </a>
-              <a
-                className="px-space-md py-1.5 rounded-lg text-outline-variant hover:text-white hover:bg-surface-tint/20 font-label-md font-medium transition-colors"
-                href="#"
-              >
-                Bảo Chứng Di Sản
-              </a>
-            </nav>
           </div>
 
-          {/* Quick Header Actions - Icon-first on Mobile */}
-          <div className="flex items-center gap-1 sm:gap-space-sm shrink-0">
+          {/* Quick Header Actions - Icon-only, Minimalist & Zero AI Slop */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Gen Z Remix (Phím X) */}
             <button
               type="button"
               onClick={handleGenZRemix}
-              className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-gradient-to-r from-purple-700 to-pink-600 text-white hover:opacity-95 transition-all flex items-center gap-1 text-label-sm font-semibold shadow-xs cursor-pointer"
-              title="Phối ngẫu hứng Cổ Phục x Y2K Hiện Đại (Phím X)"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-surface-tint/20 hover:bg-surface-tint/40 text-[#eed182] border border-[#c59b27]/30 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Gen Z Remix (Phím X)"
+              aria-label="Gen Z Remix"
             >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">bolt</span>
-              <span className="hidden xl:inline">Gen Z Remix</span>
+              <span className="material-symbols-outlined text-[18px] sm:text-[19px]">bolt</span>
             </button>
 
+            {/* Phối ngẫu nhiên (Phím R) */}
             <button
               type="button"
               onClick={handleRandomize}
-              className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1 text-label-sm font-medium shadow-sm cursor-pointer"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-surface-tint/20 hover:bg-surface-tint/40 text-on-primary border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
               title="Phối ngẫu nhiên màu truyền thống (Phím R)"
+              aria-label="Phối ngẫu nhiên"
             >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">casino</span>
-              <span className="hidden xl:inline">Ngẫu Nhiên</span>
+              <span className="material-symbols-outlined text-[18px] sm:text-[19px]">casino</span>
             </button>
 
+            {/* Đặt lại sàn thử / Cởi hết (Phím Delete) */}
             <button
               id="header-reset-btn"
               type="button"
               onClick={handleResetStage}
-              className="h-8 sm:h-9 px-2 sm:px-space-sm rounded-lg bg-primary-container text-outline-variant hover:text-white hover:bg-surface-tint/40 transition-colors flex items-center gap-1 text-label-sm font-medium shadow-sm cursor-pointer"
-              title="Đặt Lại Ban Đầu / Cởi Hết (Phím Delete)"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-surface-tint/20 hover:bg-surface-tint/40 text-on-primary border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Đặt lại sàn thử / Cởi hết (Phím Delete)"
+              aria-label="Đặt lại sàn thử"
             >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">restart_alt</span>
-              <span className="hidden xl:inline">Đặt Lại</span>
+              <span className="material-symbols-outlined text-[18px] sm:text-[19px]">restart_alt</span>
             </button>
 
+            {/* Xuất ảnh Lookbook (Phím S) */}
+            <button
+              id="header-snapshot-btn"
+              type="button"
+              onClick={() => setIsSnapshotOpen(true)}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-surface-tint/20 hover:bg-surface-tint/40 text-on-primary border border-outline-variant/30 flex items-center justify-center transition-all cursor-pointer shadow-xs active:scale-95"
+              title="Xuất ảnh Lookbook (Phím S)"
+              aria-label="Xuất ảnh Lookbook"
+            >
+              <span className="material-symbols-outlined text-[18px] sm:text-[19px]">photo_camera</span>
+            </button>
+
+            {/* AI Stylist & Google Stitch Studio */}
             <button
               id="header-ai-stylist-btn"
               type="button"
@@ -541,53 +533,11 @@ export function App() {
                 setAiStylistInitialFaceMode('default');
                 setIsAIStylistOpen(true);
               }}
-              className="h-8 sm:h-9 px-2 sm:px-space-md rounded-lg bg-gradient-to-r from-[#b93829] to-[#c59b27] text-white hover:opacity-95 shadow-[0_2px_12px_rgba(185,56,41,0.35)] transition-all flex items-center gap-1 font-label-sm font-semibold cursor-pointer"
-              title="Cố Vấn Phối Đồ AI"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-gradient-to-br from-[#ae3022] to-[#73190f] text-[#eed182] border border-[#c59b27]/60 shadow-sm hover:brightness-110 flex items-center justify-center transition-all cursor-pointer ring-1 ring-[#c59b27]/30 active:scale-95"
+              title="Cố Vấn AI & Google Stitch Studio"
+              aria-label="Cố Vấn AI & Google Stitch Studio"
             >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">auto_awesome</span>
-              <span className="hidden sm:inline">Cố Vấn AI</span>
-              <span className="sm:hidden text-[11px] font-bold">AI</span>
-            </button>
-
-            {/* Nút Hồ Sơ Đề Án Audition - Trình bày mục tiêu, Persona Gen Z & Triết lý văn hóa */}
-            <button
-              id="header-audition-dossier-btn"
-              type="button"
-              onClick={() => setIsAuditionDossierOpen(true)}
-              className="h-8 sm:h-9 px-2 sm:px-2.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-primary border border-[#c59b27]/40 shadow-2xs transition-all flex items-center gap-1 font-label-sm font-semibold cursor-pointer"
-              title="Xem Hồ Sơ Đề Án Audition (Phương pháp luận & Bảo chứng di sản)"
-            >
-              <span className="material-symbols-outlined text-[16px] sm:text-[17px] text-[#AE3022]">menu_book</span>
-              <span className="hidden md:inline">Đề Án Audition</span>
-              <span className="md:hidden">Đề Án</span>
-            </button>
-
-            {/* Nút Tạo Poster Mặt Bạn - Mở trực tiếp Stitch Studio và khung tải ảnh chân dung */}
-            <button
-              id="header-upload-face-poster-btn"
-              type="button"
-              onClick={() => {
-                setAiStylistInitialTab('stitch');
-                setAiStylistInitialFaceMode('custom');
-                setIsAIStylistOpen(true);
-              }}
-              className="h-8 sm:h-9 px-2 sm:px-space-md rounded-lg bg-gradient-to-r from-amber-600 via-rose-600 to-[#b93829] text-white hover:opacity-95 shadow-[0_2px_12px_rgba(217,119,6,0.35)] transition-all flex items-center gap-1.5 font-label-sm font-bold cursor-pointer ring-1 ring-amber-300/50"
-              title="Tải ảnh chân dung & Dùng Stitch AI tạo Poster Lookbook mang khuôn mặt bạn"
-            >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px] text-amber-200">add_a_photo</span>
-              <span className="hidden md:inline">Tải Mặt Sinh Poster</span>
-              <span className="md:hidden hidden xs:inline">Tải Mặt</span>
-              <span className="xs:hidden text-[11px] font-bold">Mặt</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsSnapshotOpen(true)}
-              className="h-8 sm:h-9 px-2 sm:px-space-md rounded-lg bg-secondary text-on-secondary hover:bg-on-secondary-container hover:text-on-secondary shadow-[0_2px_10px_rgba(174,48,34,0.35)] transition-all flex items-center gap-1 font-label-sm font-semibold cursor-pointer"
-              title="Xuất Chứng Thư & Chụp Ảnh"
-            >
-              <span className="material-symbols-outlined text-[17px] sm:text-[18px]">photo_camera</span>
-              <span className="hidden xs:inline text-[11px] sm:text-xs">Xuất Ảnh</span>
+              <span className="material-symbols-outlined text-[18px] sm:text-[20px]">auto_awesome</span>
             </button>
           </div>
         </div>
@@ -639,10 +589,6 @@ export function App() {
                     <span className="underline font-bold">Mặc quần</span>
                   </button>
                 )}
-                <div className="hidden sm:flex items-center gap-1.5 bg-surface-container-highest px-2 py-0.5 rounded-full text-[10px] text-on-surface-variant font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                  <span>HSL Shading</span>
-                </div>
                 <div className="bg-primary text-on-primary px-2 py-0.5 rounded text-[10px] font-semibold">
                   <span id="equipped-badge">{activeCount} món</span>
                 </div>
@@ -839,12 +785,6 @@ export function App() {
         onClose={() => setIsStoryModalOpen(false)}
         item={selectedStoryItem}
         currentSetId={currentSetId}
-      />
-
-      {/* Audition Dossier Modal */}
-      <AuditionDossierModal
-        isOpen={isAuditionDossierOpen}
-        onClose={() => setIsAuditionDossierOpen(false)}
       />
 
       {/* Cultural Authenticity Assessment Modal */}
