@@ -11,6 +11,7 @@ import {
   type ColorState,
   type EquippedOutfit,
   type HeritageRegion,
+  type LayerId,
   type LayerStateMap,
   type WardrobeItem,
 } from '../data/dressroomConfig';
@@ -26,6 +27,7 @@ interface WardrobePanelProps {
   onOpenAIStylist?: () => void;
   isMissingBottom?: boolean;
   onOpenCulturalStory?: (item: WardrobeItem) => void;
+  layerMap?: Record<LayerId, number>;
 }
 
 type TabFilter = 'all' | 'outerTop' | 'innerTop' | 'bottom' | 'belt' | 'headwear' | 'shoes' | 'accessories';
@@ -58,6 +60,7 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
   onOpenAIStylist,
   isMissingBottom,
   onOpenCulturalStory,
+  layerMap,
 }) => {
   const [activeTab, setActiveTab] = useState<TabFilter>('all');
   const [selectedRegion, setSelectedRegion] = useState<HeritageRegion>('all');
@@ -258,7 +261,7 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
               Boolean(layerVisibility[item.category]);
             const isCurrentActive = activeCategory === item.category;
             const currentColor = colorState[item.id] || item.defaultColor || '#AE3022';
-            const zIndex = LAYER_MAP[item.category];
+            const zIndex = (layerMap && layerMap[item.category]) ?? LAYER_MAP[item.category];
 
             return (
               <div

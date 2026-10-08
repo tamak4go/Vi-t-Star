@@ -6,8 +6,8 @@
 
 export type LayerId =
   | "base"
-  | "bottom"
   | "shoes"
+  | "bottom"
   | "innerTop"
   | "outerTop"
   | "belt"
@@ -17,10 +17,10 @@ export type LayerId =
 
 export type Category = LayerId;
 
-export const LAYER_MAP: Record<LayerId, number> = {
+export const DEFAULT_LAYER_MAP: Record<LayerId, number> = {
   base:      10,
-  bottom:    20,
-  shoes:     30,
+  shoes:     20,
+  bottom:    30,
   innerTop:  40,
   outerTop:  50,
   belt:      60,
@@ -29,11 +29,26 @@ export const LAYER_MAP: Record<LayerId, number> = {
   handheld:  90,
 };
 
-// Thứ tự hiển thị layer trong panel inspector/debug (thấp -> cao)
-export const LAYER_INSPECTOR_ORDER: LayerId[] = [
-  "base", "bottom", "shoes", "innerTop", "outerTop",
+export const LAYER_MAP: Record<LayerId, number> = { ...DEFAULT_LAYER_MAP };
+
+// Thứ tự hiển thị layer mặc định trong panel inspector/debug (thấp -> cao)
+export const DEFAULT_LAYER_ORDER: LayerId[] = [
+  "base", "shoes", "bottom", "innerTop", "outerTop",
   "belt", "neckwear", "headwear", "handheld",
 ];
+
+export const LAYER_INSPECTOR_ORDER: LayerId[] = [...DEFAULT_LAYER_ORDER];
+
+/**
+ * Tạo bản đồ Z-Index động dựa trên thứ tự mảng layerOrder tùy chỉnh của người dùng
+ */
+export function buildLayerMapFromOrder(order: LayerId[]): Record<LayerId, number> {
+  const map: Partial<Record<LayerId, number>> = {};
+  order.forEach((cat, idx) => {
+    map[cat] = (idx + 1) * 10;
+  });
+  return map as Record<LayerId, number>;
+}
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   base:     "Người mẫu",

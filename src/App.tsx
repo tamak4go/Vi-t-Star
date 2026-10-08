@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AIStylistModal } from './components/AIStylistModal';
 
 import { ColorTuningPanel } from './components/ColorTuningPanel';
@@ -15,6 +15,8 @@ import { checkCulturalAuthenticity, getItemCulturalStory } from './services/cult
 
 import {
   BASE_MANNEQUIN_ITEM,
+  CATEGORY_LABELS,
+  DEFAULT_LAYER_ORDER,
   INITIAL_BRIGHTNESS_STATE,
   INITIAL_COLOR_STATE,
   INITIAL_LAYER_STATE,
@@ -23,10 +25,12 @@ import {
   TRADITIONAL_PALETTE,
   WARDROBE_ITEMS,
   buildEquippedFromPreset,
+  buildLayerMapFromOrder,
   type BrightnessState,
   type Category,
   type ColorState,
   type EquippedOutfit,
+  type LayerId,
   type LayerStateMap,
   type OutfitPreset,
   type WardrobeItem,
@@ -46,6 +50,27 @@ export function App() {
 
   // Bảng độ sáng / đậm nhạt (-1..1) cho từng item (key = item.id)
   const [brightnessState, setBrightnessState] = useState<BrightnessState>(INITIAL_BRIGHTNESS_STATE);
+
+  // Thứ tự layer y phục do người dùng tự tùy chỉnh linh hoạt
+  const [layerOrder, setLayerOrder] = useState<LayerId[]>(() => {
+    try {
+      const saved = localStorage.getItem('vietstar_custom_layer_order');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length === DEFAULT_LAYER_ORDER.length) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return DEFAULT_LAYER_ORDER;
+  });
+
+  // Bảng map Z-Index động tương ứng với layerOrder hiện tại
+  const layerMap = useMemo(() => {
+    return buildLayerMapFromOrder(layerOrder);
+  }, [layerOrder]);
 
   // Tầng y phục đang được chọn để chỉnh màu tại panel bên phải
   const [activeCategory, setActiveCategory] = useState<Category>('innerTop');
@@ -226,6 +251,55 @@ export function App() {
     setZoom(1.0);
     showToast('Đã cởi hết trang phục, đưa sàn thử về người mẫu mộc & nền giấy dó!');
   };
+
+  // Nâng layer lên tầng cao hơn (tăng Z-index)
+  const handleMoveLayerUp = useCallback((category: Category) => {
+    if (category === 'base') return;
+    setLayerOrder((prev) => {
+      const idx = prev.indexOf(category);
+      if (idx <= 0 || idx >= prev.length - 1) return prev;
+      const next = [...prev];
+      const targetCat = next[idx + 1];
+      next[idx] = targetCat;
+      next[idx + 1] = category;
+      try {
+        localStorage.setItem('vietstar_custom_layer_order', JSON.stringify(next));
+      } catch {}
+      const targetLabel = CATEGORY_LABELS[targetCat] || targetCat;
+      const currentLabel = CATEGORY_LABELS[category] || category;
+      showToast(`Đã nâng lớp ${currentLabel} lên trên ${targetLabel}`);
+      return next;
+    });
+  }, [showToast]);
+
+  // Hạ layer xuống tầng thấp hơn (giảm Z-index)
+  const handleMoveLayerDown = useCallback((category: Category) => {
+    if (category === 'base') return;
+    setLayerOrder((prev) => {
+      const idx = prev.indexOf(category);
+      if (idx <= 1) return prev; // Base luôn cố định ở index 0
+      const next = [...prev];
+      const targetCat = next[idx - 1];
+      next[idx] = targetCat;
+      next[idx - 1] = category;
+      try {
+        localStorage.setItem('vietstar_custom_layer_order', JSON.stringify(next));
+      } catch {}
+      const targetLabel = CATEGORY_LABELS[targetCat] || targetCat;
+      const currentLabel = CATEGORY_LABELS[category] || category;
+      showToast(`Đã hạ lớp ${currentLabel} xuống dưới ${targetLabel}`);
+      return next;
+    });
+  }, [showToast]);
+
+  // Khôi phục thứ tự layer mặc định
+  const handleResetLayerOrder = useCallback(() => {
+    setLayerOrder(DEFAULT_LAYER_ORDER);
+    try {
+      localStorage.removeItem('vietstar_custom_layer_order');
+    } catch {}
+    showToast('Đã khôi phục thứ tự layer mặc định');
+  }, [showToast]);
 
   // Handler mở hộp thoại điển tích văn hóa
   const handleOpenCulturalStory = (item: WardrobeItem | null) => {
@@ -669,6 +743,7 @@ export function App() {
                   onOpenAIStylist={() => setIsAIStylistOpen(true)}
                   isMissingBottom={culturalCheck.isMissingBottom}
                   onOpenCulturalStory={handleOpenCulturalStory}
+                  layerMap={layerMap}
                 />
               </div>
 
@@ -704,6 +779,8 @@ export function App() {
                   onSwitchSlot={handleSwitchSlot}
                   onOpenAuthenticityModal={() => setIsAuthenticityModalOpen(true)}
                   authenticityNoticeCount={authenticityAssessment.conflicts.length}
+                  layerOrder={layerOrder}
+                  layerMap={layerMap}
                 />
               </div>
 
@@ -720,6 +797,11 @@ export function App() {
                     activeColorLayer={activeCategory}
                     onToggleLayer={handleToggleLayer}
                     onSelectColorLayer={(category) => setActiveCategory(category)}
+                    layerOrder={layerOrder}
+                    layerMap={layerMap}
+                    onMoveLayerUp={handleMoveLayerUp}
+                    onMoveLayerDown={handleMoveLayerDown}
+                    onResetLayerOrder={handleResetLayerOrder}
                   />
                 </div>
 

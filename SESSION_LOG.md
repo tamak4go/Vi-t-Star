@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã hoán đổi chính xác thứ tự layer phục trang giữa Quần (`bottom`: z-20) và Giày (`shoes`: z-30) trong `LAYER_MAP` và `LAYER_INSPECTOR_ORDER`. Giày/boots/ủng platform được hiển thị tự nhiên đè lên trên ống quần, không còn bị quần cắt ngang che mất thân giày. Build pass 100% (2.31s, 0 error).
+> **Trạng thái hiện tại**: Đã hoàn tác cấu hình layer mặc định (Giày: z-20, Quần: z-30) và xây dựng tính năng cho phép Người Dùng Tự Do Điều Chỉnh Thứ Tự Layer Tùy Ý (Custom Dynamic Layer Ordering). Hỗ trợ nút Nâng lên (Z-index cao hơn) / Hạ xuống (Z-index thấp hơn) từng layer và nút Đặt lại mặc định trong bảng Kiểm Tra Xếp Lớp (LayerInspector). Canvas & Wardrobe đồng bộ 100%. Build pass 100% (2.51s, 0 error).
 
 ---
 
@@ -10,6 +10,29 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-08 11:15 | Hoàn Tác Layer Mặc Định & Cung Cấp Tính Năng Cho Phép User Tự Do Điều Chỉnh Thứ Tự Layer Tùy Ý - Build Pass 100%
+- **Yêu cầu của User**: "hoàn tác chỉnh sửa layer đi , set layer mặc định cho phép user tự chỉnh layer tùy ý".
+- **Phân tích yêu cầu & Thiết kế giải pháp (Studio Standard Architecture)**:
+  1. **Hoàn tác cấu hình mặc định**: Khôi phục `DEFAULT_LAYER_MAP` và `DEFAULT_LAYER_ORDER` về ban đầu: `base: 10`, `shoes: 20`, `bottom: 30`, `innerTop: 40`, `outerTop: 50`, `belt: 60`, `neckwear: 70`, `headwear: 80`, `handheld: 90`.
+  2. **Kiến trúc Layer động linh hoạt (`buildLayerMapFromOrder`)**:
+     - Lưu state `layerOrder: LayerId[]` (đồng bộ qua `localStorage: 'vietstar_custom_layer_order'`).
+     - Tự động tính toán bản đồ `layerMap: Record<LayerId, number>` dựa trên thứ tự mảng `layerOrder` (vị trí index * 10 + 10).
+  3. **Bộ điều khiển xếp lớp trực quan trong `LayerInspector.tsx`**:
+     - Mỗi layer (trừ `base` cố định ở đáy) được trang bị 2 nút điều hướng tinh gọn:
+       + Nút 🔼 `arrow_upward`: Nâng layer lên tầng cao hơn (tăng Z-index, đè lên lớp kế trên).
+       + Nút 🔽 `arrow_downward`: Hạ layer xuống tầng thấp hơn (giảm Z-index, nằm dưới lớp kế dưới).
+     - Nút 🔄 `restart_alt` ở Header của bảng Inspector: Khôi phục thứ tự layer mặc định ngay lập tức.
+     - Toast phản hồi trực quan: `"Đã nâng lớp Giày lên trên Quần / Váy"`, `"Đã hạ lớp Quần / Váy xuống dưới Giày"`...
+  4. **Đồng bộ hóa toàn diện (`DressCanvas.tsx` & `WardrobePanel.tsx`)**:
+     - `DressCanvas`: Tự động render các layer y phục theo thứ tự mảng `layerOrder` và `layerMap` động. Khi user nâng giày lên trên quần, giày sẽ render đè lên quần ngay trên canvas!
+     - `WardrobePanel`: Badge Z-Index trên thẻ y phục hiển thị chính xác theo `layerMap` hiện tại.
+- **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 2.51s (1911 modules transformed, 0 error).
+  - `npx oxlint -D error`: **PASS 0 ERROR (exit code 0)**.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
+---
 
 ### ⏱️ Phiên 2026-10-08 10:43 | Hoán Đổi Layer Giày & Quần (Giày Nằm Trên Quần) - Khắc Phục Lỗi Hiển Thị Ủng / Boots Bị Quần Đè Cụt - Build Pass 100%
 - **Yêu cầu của User**: "layer giày vs quần nên hoán đổi" (kèm ảnh chụp mannequin mặc quần đỏ phối cùng đôi boots platform Y2K đen bị ống quần đỏ đè lên trên, cắt ngang cổ boots và khiến phần viền boots xòe ra sau quần).

@@ -9,6 +9,7 @@ import {
   type BrightnessState,
   type ColorState,
   type EquippedOutfit,
+  type LayerId,
   type LayerStateMap,
   type WardrobeItem,
 } from '../data/dressroomConfig';
@@ -47,6 +48,9 @@ export interface DressCanvasProps {
   // Cảnh báo lệch chuẩn văn hóa:
   onOpenAuthenticityModal?: () => void;
   authenticityNoticeCount?: number;
+  // Thứ tự layer tùy chỉnh linh hoạt:
+  layerOrder?: LayerId[];
+  layerMap?: Record<LayerId, number>;
 }
 
 
@@ -136,6 +140,8 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
   onSelectBackdrop,
   onOpenAuthenticityModal,
   authenticityNoticeCount = 0,
+  layerOrder,
+  layerMap,
 }) => {
 
   const [isBackdropOpen, setIsBackdropOpen] = useState(false);
@@ -407,8 +413,8 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
               className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none z-[10]"
             />
 
-            {/* Render các tầng y phục theo thứ tự Z-Index của LAYER_INSPECTOR_ORDER */}
-            {LAYER_INSPECTOR_ORDER.map((category) => {
+            {/* Render các tầng y phục theo thứ tự Z-Index tùy chỉnh của người dùng */}
+            {(layerOrder || LAYER_INSPECTOR_ORDER).map((category) => {
               if (category === 'base') return null;
               const item = equippedOutfit[category];
               if (!item) return null;
@@ -416,7 +422,7 @@ export const DressCanvas: React.FC<DressCanvasProps> = ({
               const isVisible = Boolean(layerVisibility[category]);
               const targetHex = colorState[item.id] || item.defaultColor;
               const brightness = brightnessState[item.id] || 0;
-              const zIndex = LAYER_MAP[category];
+              const zIndex = (layerMap && layerMap[category]) ?? LAYER_MAP[category];
 
               return (
                 <RecoloredLayer
