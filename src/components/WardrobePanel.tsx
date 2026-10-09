@@ -49,6 +49,19 @@ const TABS: TabItem[] = [
   { id: 'accessories', label: 'Phụ Kiện', icon: 'diamond' },
 ];
 
+// Bản đồ điểm neo thông minh theo danh mục giúp phóng to 150% mà không bị cắt xén viền
+const CATEGORY_TRANSFORM_ORIGIN: Record<Category, string> = {
+  headwear: 'center 8%',
+  neckwear: 'center 22%',
+  innerTop: 'center 32%',
+  outerTop: 'center 32%',
+  belt: 'center 48%',
+  bottom: 'center 68%',
+  shoes: 'center 95%',
+  handheld: 'center 52%',
+  base: 'center center',
+};
+
 export const WardrobePanel: React.FC<WardrobePanelProps> = ({
   equippedOutfit,
   layerVisibility,
@@ -287,7 +300,10 @@ export const WardrobePanel: React.FC<WardrobePanelProps> = ({
                 <img
                   src={item.src}
                   alt={item.name}
-                  className="w-full h-full object-contain filter drop-shadow-sm group-hover:scale-105 transition-transform duration-200 pointer-events-none"
+                  style={{
+                    transformOrigin: CATEGORY_TRANSFORM_ORIGIN[item.category] || 'center center',
+                  }}
+                  className="w-full h-full object-contain filter drop-shadow-sm scale-[1.5] group-hover:scale-[1.6] transition-transform duration-200 pointer-events-none"
                 />
               </div>
 
