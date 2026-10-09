@@ -143,7 +143,7 @@ export default async function handler(req, res) {
     }
 
     const proxiedUrl = rawUrl
-      ? `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`
+      ? (rawUrl.startsWith('/') ? rawUrl : `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`)
       : undefined;
 
     const newScreen = {

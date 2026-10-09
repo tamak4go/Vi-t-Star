@@ -38,7 +38,7 @@ export default async function handler(req, res) {
       .slice(0, 16)
       .map((s) => {
         const rawUrl = s.screenshot.downloadUrl;
-        const proxiedUrl = `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`;
+        const proxiedUrl = rawUrl.startsWith('/') ? rawUrl : `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`;
         return {
           id: s.name.split('/').pop(),
           name: s.name,

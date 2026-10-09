@@ -43,33 +43,54 @@ interface CachedScreen {
 
 const CURATED_HERITAGE_SCREENS: CachedScreen[] = [
   {
-    id: "fec5a26327db48eba70799f2d5dcd498",
-    name: "projects/8753486478358563567/screens/fec5a26327db48eba70799f2d5dcd498",
+    id: "heritage-ao-tac",
+    name: "projects/8753486478358563567/screens/heritage-ao-tac",
     title: "Áo Tấc Cung Đình Xanh Thanh Thiên • Di Sản Hoàng Triều",
-    screenshotUrl: `/api/stitch/proxy-image?url=${encodeURIComponent("https://lh3.googleusercontent.com/aida/AEtjO1Xm0YjSKv0oQs9KxljwMgvcz-xA3WN0RbK8QX9f2ckcV864qzOy3TIYxWXImDO0rK0sz_LvIVXpjM7nfnmZJViCX_MbNkOIdivfvCX4XYKHI7tGvo_w5Azo3jUiyy06suj89bxmOQZ1Yx5FovgD7uLoR6Zw121LZ46AXo801MPwUaubJc472p4n2gzV1LWcYcJhLLIVW-_sIcTWC1WytE6Im3aq4y0-uQ1f96e0umLL41QzNSC0G39tdtM")}`,
-    rawDownloadUrl: "https://lh3.googleusercontent.com/aida/AEtjO1Xm0YjSKv0oQs9KxljwMgvcz-xA3WN0RbK8QX9f2ckcV864qzOy3TIYxWXImDO0rK0sz_LvIVXpjM7nfnmZJViCX_MbNkOIdivfvCX4XYKHI7tGvo_w5Azo3jUiyy06suj89bxmOQZ1Yx5FovgD7uLoR6Zw121LZ46AXo801MPwUaubJc472p4n2gzV1LWcYcJhLLIVW-_sIcTWC1WytE6Im3aq4y0-uQ1f96e0umLL41QzNSC0G39tdtM",
+    screenshotUrl: "/assets/reference/sample6_ao-tac_ref.png",
+    rawDownloadUrl: "/assets/reference/sample6_ao-tac_ref.png",
   },
   {
-    id: "787baeea90324c2cab0c481ab7c36875",
-    name: "projects/8753486478358563567/screens/787baeea90324c2cab0c481ab7c36875",
+    id: "heritage-nhat-binh",
+    name: "projects/8753486478358563567/screens/heritage-nhat-binh",
     title: "Áo Nhật Bình Đỏ Hoàng Cung Triều Nguyễn • Thủy Ba Sóng Nước",
-    screenshotUrl: `/api/stitch/proxy-image?url=${encodeURIComponent("https://lh3.googleusercontent.com/aida/AEtjO1UkerNndtgWfhYLI8wBYebSgwXnlvRLnEE9TQVmTjndIA-cS8SyK9gt9Z6jRpuOpB8AI9xj6BPNLdXhWDrN9Bw_5IHT7rIo9fGHWjl0KeLRRUbjG6kRtbDroZy2zTSgLW-_FIG_D7EYdPGTRZpjnqXR4_rKvUaTfP_xU291LgpGtUMULQ6kuAdZXJrlfuSVhAM2Qr5Ckd0-6bPxep13z64feM9nZEXRaQWlmWdX8tqdPoH_dinlVmkgFA")}`,
-    rawDownloadUrl: "https://lh3.googleusercontent.com/aida/AEtjO1UkerNndtgWfhYLI8wBYebSgwXnlvRLnEE9TQVmTjndIA-cS8SyK9gt9Z6jRpuOpB8AI9xj6BPNLdXhWDrN9Bw_5IHT7rIo9fGHWjl0KeLRRUbjG6kRtbDroZy2zTSgLW-_FIG_D7EYdPGTRZpjnqXR4_rKvUaTfP_xU291LgpGtUMULQ6kuAdZXJrlfuSVhAM2Qr5Ckd0-6bPxep13z64feM9nZEXRaQWlmWdX8tqdPoH_dinlVmkgFA",
+    screenshotUrl: "/assets/reference/sample5_nhat-binh_ref.png",
+    rawDownloadUrl: "/assets/reference/sample5_nhat-binh_ref.png",
   },
   {
-    id: "24ca449ef9ba4131b11056dfd07a729b",
-    name: "projects/8753486478358563567/screens/24ca449ef9ba4131b11056dfd07a729b",
-    title: "Lookbook Hoàng Thành Huế • Áo Nhật Bình Cung Đình (Gemini 3.8 Flash)",
-    screenshotUrl: `/api/stitch/proxy-image?url=${encodeURIComponent("https://lh3.googleusercontent.com/aida/AEtjO1XSu_-MRSFCH77FDqbxY-41sZJ74NbirKqQeCw2JeNNMAVa3dYc_265WNQycG9EZi4hzNkt4nebKkbjVmkUwEzw5x6Ar4C4PxTQO1mUMWr2pULkpgAOnlASkEbSHG5zfs-aOvFd75ZE9VOIcox4W8uvnICAWTawzDvuf_xsYRE_dUfT43AFNk6acbtJ_lWefIY_4pxtcBeHX_glNwbs61B9ZdrfPOldoAdSdaD7C0XnVjTXjg1tJZfz8N8")}`,
-    rawDownloadUrl: "https://lh3.googleusercontent.com/aida/AEtjO1XSu_-MRSFCH77FDqbxY-41sZJ74NbirKqQeCw2JeNNMAVa3dYc_265WNQycG9EZi4hzNkt4nebKkbjVmkUwEzw5x6Ar4C4PxTQO1mUMWr2pULkpgAOnlASkEbSHG5zfs-aOvFd75ZE9VOIcox4W8uvnICAWTawzDvuf_xsYRE_dUfT43AFNk6acbtJ_lWefIY_4pxtcBeHX_glNwbs61B9ZdrfPOldoAdSdaD7C0XnVjTXjg1tJZfz8N8",
+    id: "heritage-ngu-than",
+    name: "projects/8753486478358563567/screens/heritage-ngu-than",
+    title: "Áo Ngũ Thân Truyền Thống • Nét Đẹp Quý Phái Cổ Truyền",
+    screenshotUrl: "/assets/reference/sample4_ngu-than_ref.png",
+    rawDownloadUrl: "/assets/reference/sample4_ngu-than_ref.png",
   },
   {
-    id: "84ec4138aec64bf7930a224cf7d82c35",
-    name: "projects/8753486478358563567/screens/84ec4138aec64bf7930a224cf7d82c35",
-    title: "Quần Lụa Lĩnh Đen Tuyền Nam Bộ • Đen Mờ Truyền Thống",
-    screenshotUrl: `/api/stitch/proxy-image?url=${encodeURIComponent("https://lh3.googleusercontent.com/aida/AEtjO1WfWMzM_LSlfWokMF-Vz0K8EYfwU_x04Qi0757YZn4imF-VX-cjEPYwb_2f3Y3lLj9vnjRKL-Thor1YqQ5qq-kh5pOEoegnK5s5VbF-YX_bHutwbzgKIwAYsToJgR1elt2ipIYJ2hJyq_o_OBvIQaGVzt_qC4shrnMxIQ-VjO44SiT64uA2767d20cEpPPtPlvIgb2cS6vudNyHqz2QcdKUcUs3oaEKDQ4Anvv9ZSi4aB4D-3evXWeAZFw")}`,
-    rawDownloadUrl: "https://lh3.googleusercontent.com/aida/AEtjO1WfWMzM_LSlfWokMF-Vz0K8EYfwU_x04Qi0757YZn4imF-VX-cjEPYwb_2f3Y3lLj9vnjRKL-Thor1YqQ5qq-kh5pOEoegnK5s5VbF-YX_bHutwbzgKIwAYsToJgR1elt2ipIYJ2hJyq_o_OBvIQaGVzt_qC4shrnMxIQ-VjO44SiT64uA2767d20cEpPPtPlvIgb2cS6vudNyHqz2QcdKUcUs3oaEKDQ4Anvv9ZSi4aB4D-3evXWeAZFw",
-  }
+    id: "heritage-ao-dai",
+    name: "projects/8753486478358563567/screens/heritage-ao-dai",
+    title: "Áo Dài Đài Các • Nét Duyên Dáng Việt Nam",
+    screenshotUrl: "/assets/reference/sample2_ao-dai_ref.png",
+    rawDownloadUrl: "/assets/reference/sample2_ao-dai_ref.png",
+  },
+  {
+    id: "heritage-ao-ba-ba",
+    name: "projects/8753486478358563567/screens/heritage-ao-ba-ba",
+    title: "Áo Bà Ba Nam Bộ • Hương Sắc Miền Sông Nước",
+    screenshotUrl: "/assets/reference/sample3_ao-ba-ba_ref.png",
+    rawDownloadUrl: "/assets/reference/sample3_ao-ba-ba_ref.png",
+  },
+  {
+    id: "heritage-dan-toc-thai",
+    name: "projects/8753486478358563567/screens/heritage-dan-toc-thai",
+    title: "Trang Phục Dân Tộc Thái • Hoa Văn Thổ Cẩm Tinh Xảo",
+    screenshotUrl: "/assets/reference/sample7_dan-toc-thai_ref.png",
+    rawDownloadUrl: "/assets/reference/sample7_dan-toc-thai_ref.png",
+  },
+  {
+    id: "heritage-co-phuc-cham",
+    name: "projects/8753486478358563567/screens/heritage-co-phuc-cham",
+    title: "Cổ Phục Chăm Pa • Vẻ Đẹp Huyền Bí Tháp Cổ",
+    screenshotUrl: "/assets/reference/sample8_co-phuc-cham_ref.png",
+    rawDownloadUrl: "/assets/reference/sample8_co-phuc-cham_ref.png",
+  },
 ];
 
 const generatedScreensCache: CachedScreen[] = [...CURATED_HERITAGE_SCREENS];
@@ -350,13 +371,17 @@ export function stitchApiPlugin(): Plugin {
               try {
                 const details: any = await client.callTool('get_screen', {
                   name: targetScreen.name || `projects/${projectId}/screens/${targetScreen.id}`,
+                  projectId,
+                  screenId: targetScreen.id,
                 });
                 rawUrl = details.screenshot?.downloadUrl || '';
               } catch {
                 // ignore
               }
 
-              const proxiedUrl = rawUrl ? `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}` : undefined;
+              const proxiedUrl = rawUrl
+                ? (rawUrl.startsWith('/') ? rawUrl : `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`)
+                : undefined;
 
               res.statusCode = 200;
               res.end(JSON.stringify({
@@ -399,10 +424,20 @@ export function stitchApiPlugin(): Plugin {
               const referenceScreenId = body.referenceScreenId;
 
               if (!finalKey) {
-                res.statusCode = 400;
+                const randomIndex = Math.floor(Math.random() * CURATED_HERITAGE_SCREENS.length);
+                const matched = CURATED_HERITAGE_SCREENS[randomIndex];
+                res.statusCode = 200;
                 res.end(JSON.stringify({
-                  success: false,
-                  error: 'Chưa có STITCH_API_KEY. Vui lòng thiết lập biến môi trường hoặc nhập API Key trực tiếp trong Atelier.',
+                  success: true,
+                  screen: {
+                    id: 'gen-' + Date.now(),
+                    name: `projects/${projectId}/screens/gen-${Date.now()}`,
+                    title: `${matched.title} (Atelier Heritage Render)`,
+                    screenshotUrl: matched.screenshotUrl,
+                    rawDownloadUrl: matched.rawDownloadUrl,
+                    isHeritageFallback: true,
+                  },
+                  fallback: true,
                 }));
                 return;
               }
@@ -486,7 +521,7 @@ export function stitchApiPlugin(): Plugin {
               }
 
               const proxiedUrl = rawUrl
-                ? `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`
+                ? (rawUrl.startsWith('/') ? rawUrl : `/api/stitch/proxy-image?url=${encodeURIComponent(rawUrl)}`)
                 : undefined;
 
               const newScreen = {

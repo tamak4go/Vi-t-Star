@@ -446,15 +446,18 @@ export function App() {
   // Thẩm định chuẩn mực di sản & phát hiện sai lệch đặc trưng văn hóa (Tiêu chí đề thi Audition)
   const BACKDROP_TO_OCCASION_MAP: Record<string, string> = {
     parchment: 'ky-yeu',
+    ky_yeu: 'ky-yeu',
+    tet: 'tet',
+    dinh_lang: 'dinh-lang',
+    hy_su: 'dam-cuoi',
+    ca_phe: 'cafe-genz',
+    ngoai_giao: 'ngoai-giao',
     hue_palace: 'tet',
     ancient_town: 'dinh-lang',
     studio_gold: 'dam-cuoi',
     lotus_pond: 'ky-yeu',
     minimal_gray: 'cafe-genz',
     bamboo_screen: 'dinh-lang',
-    hy_su: 'dam-cuoi',
-    ca_phe: 'cafe-genz',
-    ngoai_giao: 'ngoai-giao',
   };
   const activeOccasionId = BACKDROP_TO_OCCASION_MAP[selectedBackdrop] || 'ky-yeu';
   const authenticityAssessment = checkCulturalAuthenticity(equippedOutfit, activeOccasionId);
@@ -501,6 +504,7 @@ export function App() {
         setIsSnapshotOpen(false);
         setIsAIStylistOpen(false);
         setIsStoryModalOpen(false);
+        setIsAuthenticityModalOpen(false);
         return;
       }
 
