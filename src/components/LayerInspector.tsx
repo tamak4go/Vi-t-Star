@@ -110,8 +110,8 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
           }
 
           const currentIdx = activeOrder.indexOf(category);
-          const isTop = currentIdx === activeOrder.length - 1;
-          const isBottom = currentIdx <= 1;
+          const isAtTop = currentIdx <= 1; // Base luôn ở index 0, nên index 1 là trên cùng của danh sách y phục
+          const isAtBottom = currentIdx >= activeOrder.length - 1; // Cuối danh sách
 
           return (
             <div
@@ -144,38 +144,39 @@ export const LayerInspector: React.FC<LayerInspectorProps> = ({
               </div>
 
               <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                {/* Nút nâng / hạ tầng layer tùy ý */}
-                {onMoveLayerDown && (
-                  <button
-                    type="button"
-                    onClick={() => onMoveLayerDown(category)}
-                    disabled={isBottom}
-                    className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
-                      isBottom
-                        ? 'text-outline/30 cursor-not-allowed'
-                        : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant cursor-pointer'
-                    }`}
-                    title="Hạ lớp xuống tầng dưới (Z-Index thấp hơn)"
-                    aria-label={`Hạ lớp ${label}`}
-                  >
-                    <span className="material-symbols-outlined text-[15px]">arrow_downward</span>
-                  </button>
-                )}
-
+                {/* Nút chuyển layer lên trên */}
                 {onMoveLayerUp && (
                   <button
                     type="button"
                     onClick={() => onMoveLayerUp(category)}
-                    disabled={isTop}
+                    disabled={isAtTop}
                     className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
-                      isTop
+                      isAtTop
                         ? 'text-outline/30 cursor-not-allowed'
                         : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant cursor-pointer'
                     }`}
-                    title="Nâng lớp lên tầng trên (Z-Index cao hơn)"
-                    aria-label={`Nâng lớp ${label}`}
+                    title="Chuyển lớp lên trên"
+                    aria-label={`Chuyển lớp ${label} lên trên`}
                   >
                     <span className="material-symbols-outlined text-[15px]">arrow_upward</span>
+                  </button>
+                )}
+
+                {/* Nút chuyển layer xuống dưới */}
+                {onMoveLayerDown && (
+                  <button
+                    type="button"
+                    onClick={() => onMoveLayerDown(category)}
+                    disabled={isAtBottom}
+                    className={`w-6 h-6 rounded flex items-center justify-center transition-colors ${
+                      isAtBottom
+                        ? 'text-outline/30 cursor-not-allowed'
+                        : 'text-on-surface-variant hover:text-primary hover:bg-surface-variant cursor-pointer'
+                    }`}
+                    title="Chuyển lớp xuống dưới"
+                    aria-label={`Chuyển lớp ${label} xuống dưới`}
+                  >
+                    <span className="material-symbols-outlined text-[15px]">arrow_downward</span>
                   </button>
                 )}
 

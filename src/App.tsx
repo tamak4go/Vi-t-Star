@@ -54,7 +54,7 @@ export function App() {
   // Thứ tự layer y phục do người dùng tự tùy chỉnh linh hoạt
   const [layerOrder, setLayerOrder] = useState<LayerId[]>(() => {
     try {
-      const saved = localStorage.getItem('vietstar_custom_layer_order');
+      const saved = localStorage.getItem('vietstar_custom_layer_order_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length === DEFAULT_LAYER_ORDER.length) {
@@ -252,8 +252,28 @@ export function App() {
     showToast('Đã cởi hết trang phục, đưa sàn thử về người mẫu mộc & nền giấy dó!');
   };
 
-  // Nâng layer lên tầng cao hơn (tăng Z-index)
+  // Chuyển layer lên trên trong danh sách (về phía đầu danh sách: idx - 1)
   const handleMoveLayerUp = useCallback((category: Category) => {
+    if (category === 'base') return;
+    setLayerOrder((prev) => {
+      const idx = prev.indexOf(category);
+      if (idx <= 1) return prev; // Base luôn ở index 0, index 1 là trên cùng
+      const next = [...prev];
+      const targetCat = next[idx - 1];
+      next[idx] = targetCat;
+      next[idx - 1] = category;
+      try {
+        localStorage.setItem('vietstar_custom_layer_order_v2', JSON.stringify(next));
+      } catch {}
+      const targetLabel = CATEGORY_LABELS[targetCat] || targetCat;
+      const currentLabel = CATEGORY_LABELS[category] || category;
+      showToast(`Đã chuyển lớp ${currentLabel} lên trên ${targetLabel}`);
+      return next;
+    });
+  }, [showToast]);
+
+  // Chuyển layer xuống dưới trong danh sách (về phía cuối danh sách: idx + 1)
+  const handleMoveLayerDown = useCallback((category: Category) => {
     if (category === 'base') return;
     setLayerOrder((prev) => {
       const idx = prev.indexOf(category);
@@ -263,31 +283,11 @@ export function App() {
       next[idx] = targetCat;
       next[idx + 1] = category;
       try {
-        localStorage.setItem('vietstar_custom_layer_order', JSON.stringify(next));
+        localStorage.setItem('vietstar_custom_layer_order_v2', JSON.stringify(next));
       } catch {}
       const targetLabel = CATEGORY_LABELS[targetCat] || targetCat;
       const currentLabel = CATEGORY_LABELS[category] || category;
-      showToast(`Đã nâng lớp ${currentLabel} lên trên ${targetLabel}`);
-      return next;
-    });
-  }, [showToast]);
-
-  // Hạ layer xuống tầng thấp hơn (giảm Z-index)
-  const handleMoveLayerDown = useCallback((category: Category) => {
-    if (category === 'base') return;
-    setLayerOrder((prev) => {
-      const idx = prev.indexOf(category);
-      if (idx <= 1) return prev; // Base luôn cố định ở index 0
-      const next = [...prev];
-      const targetCat = next[idx - 1];
-      next[idx] = targetCat;
-      next[idx - 1] = category;
-      try {
-        localStorage.setItem('vietstar_custom_layer_order', JSON.stringify(next));
-      } catch {}
-      const targetLabel = CATEGORY_LABELS[targetCat] || targetCat;
-      const currentLabel = CATEGORY_LABELS[category] || category;
-      showToast(`Đã hạ lớp ${currentLabel} xuống dưới ${targetLabel}`);
+      showToast(`Đã chuyển lớp ${currentLabel} xuống dưới ${targetLabel}`);
       return next;
     });
   }, [showToast]);
@@ -296,6 +296,7 @@ export function App() {
   const handleResetLayerOrder = useCallback(() => {
     setLayerOrder(DEFAULT_LAYER_ORDER);
     try {
+      localStorage.removeItem('vietstar_custom_layer_order_v2');
       localStorage.removeItem('vietstar_custom_layer_order');
     } catch {}
     showToast('Đã khôi phục thứ tự layer mặc định');

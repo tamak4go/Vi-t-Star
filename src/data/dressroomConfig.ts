@@ -24,8 +24,8 @@ export const DEFAULT_LAYER_MAP: Record<LayerId, number> = {
   innerTop:  40,
   outerTop:  50,
   belt:      60,
-  neckwear:  70,
-  headwear:  80,
+  headwear:  70,
+  neckwear:  80,
   handheld:  90,
 };
 
@@ -34,7 +34,7 @@ export const LAYER_MAP: Record<LayerId, number> = { ...DEFAULT_LAYER_MAP };
 // Thứ tự hiển thị layer mặc định trong panel inspector/debug (thấp -> cao)
 export const DEFAULT_LAYER_ORDER: LayerId[] = [
   "base", "shoes", "bottom", "innerTop", "outerTop",
-  "belt", "neckwear", "headwear", "handheld",
+  "belt", "headwear", "neckwear", "handheld",
 ];
 
 export const LAYER_INSPECTOR_ORDER: LayerId[] = [...DEFAULT_LAYER_ORDER];

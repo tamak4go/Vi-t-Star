@@ -11,6 +11,32 @@
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
 
+### ⏱️ Phiên 2026-10-09 20:01 | Đẩy Mã Nguồn Lên GitHub (Git Push) - Đồng Bộ Hoàn Hảo Remote origin/main
+- **Yêu cầu của User**: "push".
+- **Thực hiện**:
+  1. Kiểm tra trạng thái Git (`git status`, `git diff`).
+  2. Stage toàn bộ thay đổi: `src/data/dressroomConfig.ts`, `src/components/LayerInspector.tsx`, `src/App.tsx`, `SESSION_LOG.md`.
+  3. Thực thi `git commit -m "feat(layers): align default layer order with user spec and invert up/down reorder arrow controls"` và `git push origin main`.
+  4. Toàn bộ mã nguồn đã đồng bộ thành công lên remote GitHub `origin/main`. Working tree sạch sẽ 100%.
+
+### ⏱️ Phiên 2026-10-09 19:50 | Chuẩn Hóa Thứ Tự Layer Mặc Định & Đảo Ngược 2 Nút Mũi Tên Xếp Lớp Chuẩn Xác Theo Ảnh User - Build Pass 100%
+- **Yêu cầu của User**: "ok" (tiến hành cấu hình layer mặc định theo ảnh và đảo ngược tính năng 2 nút mũi tên).
+- **Thực hiện chi tiết**:
+  1. **Cấu hình lại Thứ Tự Layer Mặc Định (`src/data/dressroomConfig.ts`)**:
+     - `DEFAULT_LAYER_MAP`: Đổi `headwear: 70`, `neckwear: 80` (hoán đổi vị trí Mũ / Khăn Đội lên trước Phụ Kiện kiềng/vòng theo đúng ảnh bảng Kiểm Tra Xếp Lớp).
+     - `DEFAULT_LAYER_ORDER`: Cập nhật thành `["base", "shoes", "bottom", "innerTop", "outerTop", "belt", "headwear", "neckwear", "handheld"]`.
+  2. **Đảo ngược & Chuẩn hóa 2 nút mũi tên (`src/components/LayerInspector.tsx`)**:
+     - Nút ⬆️ (`arrow_upward`): Di chuyển row lên trên một bậc trong danh sách, vô hiệu hóa (disabled) khi ở trên cùng (`currentIdx <= 1`).
+     - Nút ⬇️ (`arrow_downward`): Di chuyển row xuống dưới một bậc trong danh sách, vô hiệu hóa (disabled) khi ở dưới cùng (`currentIdx >= activeOrder.length - 1`).
+  3. **Đồng bộ logic dịch chuyển và LocalStorage (`src/App.tsx`)**:
+     - `handleMoveLayerUp`: Dịch chuyển `idx - 1` (lên trên về phía đầu danh sách).
+     - `handleMoveLayerDown`: Dịch chuyển `idx + 1` (xuống dưới về phía cuối danh sách).
+     - Đổi storage key thành `vietstar_custom_layer_order_v2` để tự động áp dụng `DEFAULT_LAYER_ORDER` mới ngay khi tải trang, đồng thời dọn dẹp cả key cũ khi reset.
+- **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 1.95s (1911 modules transformed, 0 error).
+  - `npx oxlint`: **PASS 0 ERROR (exit code 0)**.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
+
 ### ⏱️ Phiên 2026-10-09 15:47 | Đẩy Mã Nguồn Lên GitHub (Git Push) - Đồng Bộ Hoàn Hảo Remote origin/main
 - **Yêu cầu của User**: "push".
 - **Thực hiện**:
