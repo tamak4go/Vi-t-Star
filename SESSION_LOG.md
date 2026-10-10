@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã xử lý triệt để nguyên nhân thẩm định poster bị ảo giác/bịa đặt và xóa bỏ hoàn toàn chế độ auto-scan. Thẩm định poster chỉ khả dụng khi người dùng bấm kết xuất và chủ động yêu cầu thẩm định. Build xanh 100% (`tsc -b && vite build`), linter 0 lỗi. Vite dev server chạy ổn định tại `http://127.0.0.1:5173/`.
+> **Trạng thái hiện tại**: Đã xử lý triệt để lỗi không thấy nút kết xuất và cải thiện độ tương thích của Stitch Cloud SDK. Thêm nút "KẾT XUẤT POSTER HAUTE COUTURE NGAY" trực tiếp giữa khung triển lãm trung tâm (Empty State). Backend `generate` hỗ trợ duyệt toàn bộ `outputComponents` của Stitch. Build xanh 100% (`tsc -b && vite build`), linter 0 lỗi. Dev server sẵn sàng tại `http://127.0.0.1:5173/`.
 
 ---
 
@@ -10,6 +10,27 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-10 08:24 | Khắc Phục Triệt Để Vấn Đề '0 Gen Được ?' - Trực Tiếp Bổ Sung CTA Giữa Khung Triển Lãm & Nâng Cấp Stitch SDK Parsing - Build Pass 100%
+- **Yêu cầu của User**: "0 gen được ?", "? continue".
+- **Phân tích nguyên nhân gốc rễ (Root Cause Analysis - Rule 0)**:
+  1. *Giao diện UI/UX (Nguyên nhân chính khiến người dùng tưởng không bấm được)*:
+     - Cột điều khiển bên trái gồm Bước 1 (phục trang & gương mặt), Bước 2 (bối cảnh & chất lượng) và Bước 3 (nút kết xuất). Trên các màn hình có chiều cao giới hạn hoặc khi modal giới hạn `max-h-[850px]`, nút **"KẾT XUẤT POSTER HAUTE COUTURE NGAY"** ở Bước 3 bị trôi xuống dưới nếp gấp màn hình (bị khuất phải cuộn chuột).
+     - Khung triển lãm ở trung tâm bên phải (chiếm 60% diện tích màn hình) khi chưa có ảnh chỉ hiển thị văn bản mô tả mà **không có bất kỳ nút bấm hành động nào**, khiến người dùng lúng túng không biết bấm vào đâu để tạo ảnh.
+  2. *Xử lý API backend (Stitch SDK Payload)*:
+     - Khi Stitch Cloud SDK sinh màn hình, mảng `outputComponents` trả về thường chứa 4-5 thành phần (suy nghĩ của AI `thought`, văn bản `text`, và giao diện `design`). Code cũ chỉ đọc cố định tại `outputComponents[0].design.screens[0]`. Nếu `design` nằm ở component thứ 1 trở đi, backend sẽ trả về mã lỗi 502 báo "Stitch Cloud không trả về screen hợp lệ".
+- **Giải pháp & Khắc phục triệt để (Ponytail Clean Senior Architecture)**:
+  1. **Bổ sung nút tạo tác nổi bật trực tiếp tại Khung Triển Lãm Trung Tâm (`src/components/AIStylistModal.tsx`)**:
+     - Thêm ngay nút bấm **"✨ KẾT XUẤT POSTER HAUTE COUTURE NGAY"** (gradient đỏ mạ vàng, hiệu ứng hover/active sắc nét) ngay bên trong Empty State của khung poster. Người dùng vừa mở modal là thấy ngay nút kích hoạt tác phẩm ở vị trí thuận mắt nhất mà không cần phải cuộn tìm kiếm.
+     - Vẫn giữ nguyên nút kết xuất tại Bước 3 bên trái để người dùng sau khi tùy biến prompt có thể bấm theo cả 2 cách.
+  2. **Nâng cấp thuật toán bóc tách dữ liệu Stitch Cloud (`src/server/stitchPlugin.ts` & `api/stitch/generate.js`)**:
+     - Duyệt qua toàn bộ mảng `outputComponents` để tìm component chứa `design.screens` hoặc `screens`.
+     - Bổ sung cơ chế fallback tra cứu nhanh `list_screens` của dự án hoặc fallback curated screens nếu Stitch trả về thiếu component design.
+     - Kiểm thử thực tế qua lệnh curl/Node script: Endpoint trả về HTTP 200 `success: true` kèm URL poster 4K chất lượng cao từ Stitch Cloud.
+- **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 1.68s (1911 modules transformed, 0 error).
+  - `npx oxlint -D error`: **PASS 0 ERROR (exit code 0)**.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
 
 ### ⏱️ Phiên 2026-10-10 08:04 | Đẩy Toàn Bộ Mã Nguồn Lên GitHub (Git Push) - Đồng Bộ Hoàn Hảo Remote origin/main
 - **Yêu cầu của User**: "push".

@@ -1588,7 +1588,7 @@ export function AIStylistModal({
                         <div className="absolute bottom-2 right-2 flex items-center gap-2 z-10">
                           <a
                             href={generatedScreen.screenshotUrl}
-                            download={`vietstar-poster-${Date.now()}.png`}
+                            download="vietstar-poster-4k.png"
                             target="_blank"
                             rel="noreferrer"
                             className="px-3.5 py-1.5 bg-gradient-to-r from-[#b93829] to-[#c59b27] hover:brightness-110 text-white text-xs font-bold rounded-lg shadow-lg flex items-center gap-1.5 transition-all cursor-pointer"
@@ -1598,17 +1598,42 @@ export function AIStylistModal({
                         </div>
                       </div>
                     ) : (
-                      <div className="p-8 text-center space-y-3 text-slate-400">
+                      <div className="p-8 text-center space-y-4 text-slate-400">
                         <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-amber-300">
                           <ImageIcon className="w-8 h-8 stroke-1" />
                         </div>
-                        <div>
+                        <div className="space-y-1">
                           <p className="text-base font-serif font-bold text-amber-200">
                             Chưa có Poster được kết xuất
                           </p>
-                          <p className="text-xs text-slate-400 max-w-xs mx-auto mt-1 leading-relaxed">
-                            Hãy hoàn tất 3 bước ở bảng điều khiển bên trái và bấm <strong>"KẾT XUẤT POSTER"</strong> để chiêm ngưỡng tác phẩm!
+                          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                            Bấm nút bên dưới để Google Stitch Cloud kết xuất poster thời trang 4K độc bản ngay lập tức!
                           </p>
+                        </div>
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={handleGenerateStitchScreen}
+                            disabled={isGenerating || (outfitSourceMode === "custom" && !customOutfitInput.trim())}
+                            className={`px-6 py-3 rounded-xl font-bold text-sm inline-flex items-center justify-center gap-2.5 shadow-xl transition-all cursor-pointer ${
+                              isGenerating
+                                ? "bg-slate-800 text-slate-400 border border-slate-700 cursor-not-allowed"
+                                : "bg-gradient-to-r from-[#b93829] via-[#c59b27] to-[#b93829] hover:brightness-110 active:scale-[0.98] text-white shadow-[#b93829]/30"
+                            }`}
+                          >
+                            {isGenerating ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin text-amber-200" />
+                                <span>Google Stitch đang vẽ ({elapsedSeconds}s)...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Wand2 className="w-4 h-4 text-amber-200" />
+                                <span>KẾT XUẤT POSTER HAUTE COUTURE NGAY</span>
+                                <ArrowRight className="w-4 h-4 text-amber-200" />
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
                     )}
