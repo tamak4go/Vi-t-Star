@@ -195,15 +195,27 @@ export function AIStylistModal({
         // 1. Trích xuất màu sắc pixel thực tế từ ảnh Canvas (không bịa màu)
         const extractedColors = await extractDominantColorsFromImage(screen.screenshotUrl, 5);
 
-        // 2. Dùng đúng đặc tả của chính tác phẩm poster này (không lấy nhầm prompt đang gõ dở ở cột trái)
-        const effectivePrompt = screen.promptText || screen.title || "";
+        // 2. Dùng đúng đặc tả của chính tác phẩm poster này (kèm fallback cache prompt đã lưu của screen)
+        let effectivePrompt = screen.promptText || "";
+        if (!effectivePrompt) {
+          try {
+            const cachedPrompts = JSON.parse(localStorage.getItem('vietstar_screen_prompts_v1') || '{}');
+            effectivePrompt = cachedPrompts[screen.id] || "";
+          } catch {}
+        }
+        if (!effectivePrompt) {
+          effectivePrompt = screen.title || "";
+        }
+
+        // Tác phẩm vừa sinh độc bản có mô tả danh xưng (freshGeneratedDescription), truyền vào để bảo đảm chính xác bản sắc
+        const freshContext = (isFreshlyGenerated && freshGeneratedDescription) ? freshGeneratedDescription : "";
 
         // 3. Quét thẩm định di sản động dựa trên tác phẩm thực tế (TUYỆT ĐỐI không chèn dữ liệu mannequin từ cột trái)
         const analysis = scanPosterCulturally({
           posterId: screen.id,
           posterTitle: screen.title || "",
           promptText: effectivePrompt,
-          customUserInput: "", // Cô lập hoàn toàn, thẩm định trung thực duy nhất tác phẩm này
+          customUserInput: freshContext, // Cô lập hoàn toàn, chỉ dùng ngữ cảnh của chính tác phẩm này
           selectedOccasionId,
           selectedBackgroundId,
           extractedColors,
@@ -218,7 +230,7 @@ export function AIStylistModal({
         setIsScanningPoster(false);
       }
     },
-    [selectedOccasionId, selectedBackgroundId, showToast]
+    [selectedOccasionId, selectedBackgroundId, showToast, freshGeneratedDescription, isFreshlyGenerated]
   );
 
   // Giai đoạn xử lý thích ứng theo tiến trình Google Stitch Cloud (~70-95s)
