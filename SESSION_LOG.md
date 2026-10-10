@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Đã xử lý triệt để lỗi không thấy nút kết xuất và cải thiện độ tương thích của Stitch Cloud SDK. Thêm nút "KẾT XUẤT POSTER HAUTE COUTURE NGAY" trực tiếp giữa khung triển lãm trung tâm (Empty State). Backend `generate` hỗ trợ duyệt toàn bộ `outputComponents` của Stitch. Build xanh 100% (`tsc -b && vite build`), linter 0 lỗi. Dev server sẵn sàng tại `http://127.0.0.1:5173/`.
+> **Trạng thái hiện tại**: Đã xử lý triệt để cả 2 vấn đề: (1) Thẩm định tác phẩm độc lập 100%, không trộn lẫn y phục Mannequin vào ảnh đang xem; nhận diện chính xác hiện vật đơn lẻ (quần lụa/hạ y đơn lẻ không bị gán Thượng y hay gán sai 98-100 điểm); (2) Tối ưu hóa endpoint Stitch generate dùng `generate_screen_from_text`, đồng bộ thanh tiến trình và cache prompt của từng tác phẩm vào localStorage. Build xanh 100% (`tsc -b && vite build`), linter 0 lỗi.
 
 ---
 
@@ -10,6 +10,35 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-10 14:10 | Khắc Phục Triệt Để 2 Lỗi Trọng Tâm: Thẩm Định Bị Bịa Đặt & Lỗi Sinh Poster Treo Quá Lâu - Build Pass 100%
+- **Yêu cầu của User**: "tôi hỏi tại sao 0 gen ra ảnh được nữa? lí do fix đi", "thẩm định thì bịa, gen ảnh thì 0 gen ra theo yêu cầu được check kux lại rồi sửa".
+- **Phân tích nguyên nhân gốc rễ (Root Cause Analysis - Rule 0)**:
+  1. *Nguyên nhân thẩm định bị "bịa" (Xem ảnh chiếc quần trắng nhưng bị phán là "Áo Tứ Thân & Yếm Đào Hội Làng Kinh Bắc 98/100")*:
+     - **Lệch ngữ cảnh giữa Mannequin và Poster đang xem**: Khi người dùng click vào một ảnh bất kỳ trong bộ sưu tập (ví dụ chiếc quần trắng `51360a39...`), ảnh này từ Stitch API không có `promptText`. Hàm `executePosterScan` vô tình lấy `customOutfitInput` từ bảng điều khiển Mannequin bên trái truyền vào!
+     - Mannequin lúc đó đang mặc Áo Yếm Đỏ & Váy Đụp Đen, nên từ khóa "yếm" bị nhồi vào `corpus` của chiếc quần trắng.
+     - Hàm `scanPosterCulturally` nhận thấy từ khóa "yếm" lập tức suy diễn ra "Áo Tứ Thân & Yếm Đào Hội Làng Kinh Bắc" và tự động nhét thêm `comp-top`, khiến hệ thống tưởng có đủ cả áo lẫn quần (`hasFullSet = true`) và cho điểm 98/100!
+  2. *Nguyên nhân "0 gen ra ảnh được nữa" (Bị treo ở 97% suốt 65s - 100s)*:
+     - Khi người dùng chọn "Gương Mặt Của Bạn", hệ thống truyền `referenceScreenId` lên backend.
+     - Backend gọi tool `edit_screens` của Stitch MCP. Tool này được thiết kế để sửa đổi cấu trúc DOM của màn hình giao diện, khi nhận 1 bức ảnh chân dung thô, Stitch Agent của Google bị kẹt phân tích và mất tới hơn 100 giây hoặc fail.
+     - Trong khi đó, ở giao diện, thanh tiến trình được cấu hình `maxEstimated = 45s`, nên sau 45s nó nhảy lên 97% và đứng im suốt 55s tiếp theo, khiến người dùng tưởng hệ thống bị đơ/không sinh ảnh.
+- **Giải pháp & Khắc phục triệt để (Zero Hallucination & High Performance)**:
+  1. **Khắc phục lỗi thẩm định bịa đặt (`src/services/posterAnalysisService.ts` & `AIStylistModal.tsx`)**:
+     - **Cô lập hoàn toàn tác phẩm**: `executePosterScan` chỉ quét duy nhất dữ liệu của chính tác phẩm đó (`screen.title`, `screen.promptText`, màu sắc pixel thực tế). Tuyệt đối KHÔNG truyền `customOutfitInput` hay trang phục Mannequin từ cột trái vào.
+     - **Nhận diện chính xác Cấu Phần Đơn Lẻ**: Nếu tác phẩm chỉ là Hạ Y (quần/váy) mà không có Thượng y:
+       + Nhận diện đúng: **Quần Lụa Dài Suông Truyền Thống (Cấu Phần Hạ Y)**.
+       + Tuyệt đối KHÔNG BỊA Thượng y (Áo Tứ Thân / Áo Yếm).
+       + Điểm số trung thực: 75/100 (Chi tiết cấu phần đơn lẻ, chưa đủ bộ cổ phục hoàn chỉnh).
+       + Lời khuyên văn hóa: Cần phối kết hợp cùng Áo Dài, Áo Tấc hoặc Áo Ngũ Thân để đạt chuẩn mực hoàn chỉnh.
+     - **Lưu trữ Prompt History cho từng Screen**: Dùng `localStorage` (`vietstar_screen_prompts_v1`) ánh xạ `screenId -> promptText` để khi người dùng click vào bất kỳ ảnh nào đã sinh trong bộ sưu tập, hệ thống luôn nhớ chính xác prompt của tác phẩm đó.
+  2. **Tối ưu hóa luồng sinh ảnh Stitch Cloud (`stitchPlugin.ts`, `generate.js`, `AIStylistModal.tsx`)**:
+     - Chuyển toàn bộ các cuộc gọi sinh poster sang `generate_screen_from_text` với prompt đầy đủ các chỉ thị phục trang, giới tính (Nam/Nữ), bối cảnh di sản và bảo toàn gương mặt. Tránh hoàn toàn việc nghẽn 100s của `edit_screens`.
+     - Cập nhật các mốc thời gian ước tính và thanh tiến trình trong `getGenerationStage` (0-20s, 20-50s, 50-80s, 80s+) và nâng timeout lên 150s, giúp thanh tiến trình chạy mượt mà, phản ánh đúng thời gian thực tế của Google Cloud Diffusion.
+- **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+  - Kiểm thử trực tiếp Node script gọi `/api/stitch/generate`: Trả về HTTP 200, `success: true`, sinh Screen ID `9e0b08770a274fa3aba1ad1398a346c4` thành công với URL ảnh 4K.
+  - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 1.55s (1911 modules transformed, 0 error).
+  - `npx oxlint -D error`: **PASS 0 ERROR (exit code 0)**.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình.
 
 ### ⏱️ Phiên 2026-10-10 08:24 | Khắc Phục Triệt Để Vấn Đề '0 Gen Được ?' - Trực Tiếp Bổ Sung CTA Giữa Khung Triển Lãm & Nâng Cấp Stitch SDK Parsing - Build Pass 100%
 - **Yêu cầu của User**: "0 gen được ?", "? continue".

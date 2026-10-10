@@ -84,7 +84,33 @@ export function scanPosterCulturally(params: {
   let summaryTitle = "Tác Phẩm Thời Trang Cổ Phục Độc Bản";
   let historicalLore = "Tác phẩm kết tinh vẻ đẹp thời trang truyền thống Việt Nam dưới góc nhìn nghệ thuật đương đại.";
 
-  if (corpus.includes("nhật bình") || corpus.includes("nhat binh")) {
+  // Kiểm tra xem tác phẩm có đề cập đến Thượng Y (Áo / Yếm) hay chỉ là Hạ Y / Phụ kiện đơn lẻ
+  const hasUpperMention =
+    corpus.includes("áo") ||
+    corpus.includes("ao ") ||
+    corpus.includes("tunic") ||
+    corpus.includes("yếm") ||
+    corpus.includes("yem") ||
+    corpus.includes("top") ||
+    corpus.includes("robe");
+
+  const isOnlyBottomPiece =
+    (corpus.includes("quần") ||
+      corpus.includes("quan") ||
+      corpus.includes("pants") ||
+      corpus.includes("trousers") ||
+      corpus.includes("bottom") ||
+      corpus.includes("váy đụp")) &&
+    !hasUpperMention;
+
+  if (isOnlyBottomPiece) {
+    // Trường hợp hiện vật / ảnh chỉ là Hạ Y (quần/váy) đơn lẻ - Tuyệt đối không bịa Thượng Y
+    detectedRegionId = "bac_bo";
+    isAuthentic = true;
+    summaryTitle = "Quần Lụa Dài Suông Truyền Thống (Cấu Phần Hạ Y)";
+    historicalLore =
+      "Quần lụa dài suông là cấu phần hạ y cơ bản và mẫu mực trong trang phục truyền thống Việt Nam. Độ suông rộng thanh tao vừa giữ gìn nét đoan trang kín đáo khi bước đi, vừa tôn phong thái đĩnh đạc của người mặc.";
+  } else if (corpus.includes("nhật bình") || corpus.includes("nhat binh")) {
     detectedRegionId = "hue";
     isAuthentic = true;
     summaryTitle = "Lễ Phục Áo Nhật Bình Hoàng Cung Triều Nguyễn";
@@ -135,21 +161,38 @@ export function scanPosterCulturally(params: {
       etiquetteNote: "Tà áo phẳng phiu, bước đi nhịp nhàng khoan thai.",
       status: "authentic",
     });
-  } else if (corpus.includes("tứ thân") || corpus.includes("tu than") || corpus.includes("yếm")) {
+  } else if (corpus.includes("tứ thân") || corpus.includes("tu than")) {
     detectedRegionId = "bac_bo";
     isAuthentic = true;
-    summaryTitle = "Áo Tứ Thân & Yếm Đào Hội Làng Kinh Bắc";
+    summaryTitle = "Áo Tứ Thân Cổ Truyền Dân Gian";
     historicalLore =
       "Áo Tứ Thân gắn liền với không gian hội làng Kinh Bắc và di sản Quan họ. Bốn vạt áo tượng trưng cho tứ thân phụ mẫu bốn bên; hai vạt buộc chéo biểu thị tình nghĩa phu thê son sắt.";
     components.push({
       id: "comp-top-tu-than",
       category: "top",
       categoryLabel: "Phục Trang Dân Gian",
-      name: "Áo Tứ Thân / Yếm Đào Cổ Truyền",
-      description: "Yếm hình quả trám ôm bờ vai thon thả, khoác ngoài bằng áo tứ thân mộc mạc nhuộm củ nâu.",
+      name: "Áo Tứ Thân Bốn Vạt",
+      description: "Bốn vạt áo buông rủ mộc mạc nhuộm củ nâu, khoác ngoài tề chỉnh.",
       historicalEra: "Thế kỷ 12 – Đầu thế kỷ 20",
-      symbolism: "Hiếu nghĩa sinh thành và đức tính chịu thương chịu khó của phụ nữ Bắc Bộ xưa.",
+      symbolism: "Hiếu nghĩa sinh thành và đức tính chịu thương chịu khó của phụ nữ xưa.",
       etiquetteNote: "Khi ra chốn đông người luôn mặc kèm áo khoác ngoài tề chỉnh.",
+      status: "authentic",
+    });
+  } else if (corpus.includes("yếm") || corpus.includes("yem")) {
+    detectedRegionId = "bac_bo";
+    isAuthentic = true;
+    summaryTitle = "Áo Yếm Cổ Truyền Dân Gian";
+    historicalLore =
+      "Áo Yếm là nội y cổ truyền của phụ nữ Việt, tôn vinh nét đẹp thắt đáy lưng ong và đường cong thanh thoát của phụ nữ xưa.";
+    components.push({
+      id: "comp-top-yem",
+      category: "top",
+      categoryLabel: "Nội Y Dân Gian",
+      name: "Áo Yếm Cổ Xưa",
+      description: "Yếm hình quả trám hoặc cổ xây ôm bờ vai thon thả, buộc dây sau gáy và lưng.",
+      historicalEra: "Thời Lý - Trần đến đầu thế kỷ 20",
+      symbolism: "Vẻ đẹp thuần khiết, mộc mạc của người phụ nữ Việt.",
+      etiquetteNote: "Nội y dân gian, thường mặc kèm áo khoác ngoài khi đi lễ trang nghiêm.",
       status: "authentic",
     });
   } else if (corpus.includes("bà ba") || corpus.includes("ba ba")) {
@@ -186,8 +229,8 @@ export function scanPosterCulturally(params: {
       etiquetteNote: "Cài khít thẳng hàng cúc chính giữa ngực.",
       status: "authentic",
     });
-  } else {
-    // Trường hợp mô tả tự do / đương đại
+  } else if (hasUpperMention) {
+    // Trường hợp có Thượng Y nhưng mô tả tự do / đương đại
     summaryTitle = "Phong Cách Việt Phục Cách Tân Hiện Đại";
     components.push({
       id: "comp-top-modern",
@@ -344,6 +387,14 @@ export function scanPosterCulturally(params: {
     analysisText = "Hình ảnh có dấu hiệu thiếu quần dài hoặc chân váy truyền thống che chắn cơ thể.";
     conflicts.push("Thiếu hạ y trang nhã theo quy chuẩn cổ truyền.");
     etiquetteTips.push("Cổ phục Việt luôn đi liền với quần lụa dài hoặc váy đụp phủ kín mắt cá chân.");
+  } else if (isOnlyBottomPiece) {
+    score = 75;
+    tier = "remix";
+    badgeTitle = "Cấu Phần Hạ Y Cổ Truyền (Đơn Lẻ)";
+    badgeColorClass = "bg-amber-950 text-amber-100 border border-amber-500/50";
+    headline = "Hiện Vật Cấu Phần Hạ Y Đơn Lẻ";
+    analysisText = `Tác phẩm là chi tiết hạ y (quần lụa dài suông) đơn lẻ. Trong quy chuẩn y phục dân tộc, hạ y cần được kết hợp đồng bộ cùng Thượng y (Áo Dài, Áo Tấc hoặc Áo Ngũ Thân) và phụ kiện tương thích để tạo nên tổng thể di sản hoàn chỉnh.`;
+    etiquetteTips.push("Nên phối cùng Áo Dài, Áo Tấc hoặc Áo Ngũ Thân và hài mộc để hoàn thiện diện mạo cổ phong.");
   } else if (isAuthentic) {
     // Có căn cứ cổ phục chuẩn xác
     const hasFullSet = components.some((c) => c.category === "top") && components.some((c) => c.category === "bottom");

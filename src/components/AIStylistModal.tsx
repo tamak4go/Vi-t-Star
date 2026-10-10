@@ -198,12 +198,12 @@ export function AIStylistModal({
         // 2. Dùng đúng đặc tả của chính tác phẩm poster này (không lấy nhầm prompt đang gõ dở ở cột trái)
         const effectivePrompt = screen.promptText || screen.title || "";
 
-        // 3. Quét thẩm định di sản động dựa trên tác phẩm thực tế
+        // 3. Quét thẩm định di sản động dựa trên tác phẩm thực tế (TUYỆT ĐỐI không chèn dữ liệu mannequin từ cột trái)
         const analysis = scanPosterCulturally({
           posterId: screen.id,
-          posterTitle: screen.title,
+          posterTitle: screen.title || "",
           promptText: effectivePrompt,
-          customUserInput: screen.promptText ? "" : customOutfitInput,
+          customUserInput: "", // Cô lập hoàn toàn, thẩm định trung thực duy nhất tác phẩm này
           selectedOccasionId,
           selectedBackgroundId,
           extractedColors,
@@ -218,28 +218,28 @@ export function AIStylistModal({
         setIsScanningPoster(false);
       }
     },
-    [customOutfitInput, selectedOccasionId, selectedBackgroundId, showToast]
+    [selectedOccasionId, selectedBackgroundId, showToast]
   );
 
-  // Giai đoạn xử lý thích ứng theo tiến trình Google Cloud (~40-60s)
+  // Giai đoạn xử lý thích ứng theo tiến trình Google Stitch Cloud (~70-95s)
   const getGenerationStage = (sec: number) => {
-    if (sec < 10) {
+    if (sec < 20) {
       return { stage: "Giai đoạn 1/4", msg: "Phân tích cấu trúc phục trang & kết nối Google Stitch..." };
     }
-    if (sec < 25) {
-      return { stage: "Giai đoạn 2/4", msg: "Gemini Flash phác thảo bố cục tạp chí thời trang..." };
+    if (sec < 50) {
+      return { stage: "Giai đoạn 2/4", msg: "Gemini 3.8 phác thảo ánh sáng & bố cục poster thời trang..." };
     }
-    if (sec < 45) {
-      return { stage: "Giai đoạn 3/4", msg: "Google Stitch đang tạo tác chất liệu lụa gấm & ánh sáng..." };
+    if (sec < 80) {
+      return { stage: "Giai đoạn 3/4", msg: "Google Stitch đang tạo tác chất liệu lụa gấm & thần thái người mẫu..." };
     }
-    return { stage: "Giai đoạn 4/4", msg: "Đang kết xuất poster sắc nét & đồng bộ về Atelier..." };
+    return { stage: "Giai đoạn 4/4", msg: "Đang kết xuất poster sắc nét 4K & đồng bộ về Atelier..." };
   };
 
-  const maxEstimated = quality === "fast" ? 45 : quality === "standard" ? 60 : 75;
+  const maxEstimated = quality === "fast" ? 75 : quality === "standard" ? 90 : 105;
   const progressPercent =
     elapsedSeconds < maxEstimated
       ? Math.min(94, Math.floor((elapsedSeconds / maxEstimated) * 94))
-      : Math.min(98, 94 + Math.floor(((elapsedSeconds - maxEstimated) / 25) * 4));
+      : Math.min(98, 94 + Math.floor(((elapsedSeconds - maxEstimated) / 30) * 4));
 
   // Timer đếm giây khi đang sinh ảnh Stitch
   useEffect(() => {
@@ -341,7 +341,16 @@ export function AIStylistModal({
       });
       const data = await res.json();
       if (data.success && Array.isArray(data.screens)) {
-        const valid = data.screens.filter((s: any) => s.screenshotUrl);
+        let cachedPrompts: Record<string, string> = {};
+        try {
+          cachedPrompts = JSON.parse(localStorage.getItem('vietstar_screen_prompts_v1') || '{}');
+        } catch {}
+        const valid = data.screens
+          .filter((s: any) => s.screenshotUrl)
+          .map((s: any) => ({
+            ...s,
+            promptText: s.promptText || cachedPrompts[s.id] || undefined,
+          }));
         setRecentScreens(valid);
         // TUYỆT ĐỐI KHÔNG AUTO CHỌN valid[0]: Người dùng phải bấm kết xuất poster hoặc tự click ảnh trong bộ sưu tập
         setGeneratedScreen((curr) => curr || null);
@@ -390,11 +399,11 @@ export function AIStylistModal({
     const cfg = QUALITY_CONFIGS[quality];
     let isTimedOut = false;
 
-    // Timeout an toàn 120s cho Google Stitch tạo tác chi tiết
+    // Timeout an toàn 150s cho Google Stitch tạo tác chi tiết
     const clientTimeout = setTimeout(() => {
       isTimedOut = true;
       controller.abort();
-    }, 120000);
+    }, 150000);
 
     const desc =
       outfitSourceMode === "custom"
@@ -464,6 +473,11 @@ export function AIStylistModal({
           ...data.screen,
           promptText: customPrompt,
         };
+        try {
+          const cached = JSON.parse(localStorage.getItem('vietstar_screen_prompts_v1') || '{}');
+          cached[data.screen.id] = customPrompt;
+          localStorage.setItem('vietstar_screen_prompts_v1', JSON.stringify(cached));
+        } catch {}
         setGeneratedScreen(newlyGenerated);
         setIsFreshlyGenerated(true);
         setFreshGeneratedDescription(desc);

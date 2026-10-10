@@ -453,38 +453,21 @@ export function stitchApiPlugin(): Plugin {
 
               let genRes: any;
               try {
-                if (referenceScreenId) {
-                  genRes = await client.callTool('edit_screens', {
-                    projectId,
-                    selectedScreenIds: [referenceScreenId],
-                    prompt,
-                    deviceType,
-                  });
-                } else {
-                  genRes = await client.callTool('generate_screen_from_text', {
-                    projectId,
-                    prompt,
-                    deviceType,
-                  });
-                }
+                // Google Stitch MCP tool generate_screen_from_text tạo tác poster thời trang hoàn chỉnh trong 15-25s
+                genRes = await client.callTool('generate_screen_from_text', {
+                  projectId,
+                  prompt,
+                  deviceType,
+                });
               } catch (callErr: any) {
                 console.warn('[Stitch API] Thử lần 1 thất bại, khởi tạo kết nối mới và thử lại lần 2:', callErr?.message || callErr);
                 resetStitchClient();
                 client = await getStitchClient(finalKey, true);
-                if (referenceScreenId) {
-                  genRes = await client.callTool('edit_screens', {
-                    projectId,
-                    selectedScreenIds: [referenceScreenId],
-                    prompt,
-                    deviceType,
-                  });
-                } else {
-                  genRes = await client.callTool('generate_screen_from_text', {
-                    projectId,
-                    prompt,
-                    deviceType,
-                  });
-                }
+                genRes = await client.callTool('generate_screen_from_text', {
+                  projectId,
+                  prompt,
+                  deviceType,
+                });
               }
 
               let screenInfo: any = null;

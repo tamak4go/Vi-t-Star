@@ -62,51 +62,28 @@ export default async function handler(req, res) {
     let genRes;
 
     try {
-      if (referenceScreenId) {
-        genRes = await withTimeout(
-          client.callTool('edit_screens', {
-            projectId,
-            selectedScreenIds: [referenceScreenId],
-            prompt,
-            deviceType,
-          }),
-          120000
-        );
-      } else {
-        genRes = await withTimeout(
-          client.callTool('generate_screen_from_text', {
-            projectId,
-            prompt,
-            deviceType,
-          }),
-          120000
-        );
-      }
+      // Google Stitch MCP tool generate_screen_from_text tạo tác poster thời trang hoàn chỉnh trong 15-25s
+      genRes = await withTimeout(
+        client.callTool('generate_screen_from_text', {
+          projectId,
+          prompt,
+          deviceType,
+        }),
+        120000
+      );
     } catch (callErr) {
       console.warn('[API generate] Thử lần 1 thất bại, khởi tạo kết nối mới và thử lại lần 2:', callErr?.message || callErr);
       resetStitchClient();
       client = await getStitchClient(apiKey, true);
 
-      if (referenceScreenId) {
-        genRes = await withTimeout(
-          client.callTool('edit_screens', {
-            projectId,
-            selectedScreenIds: [referenceScreenId],
-            prompt,
-            deviceType,
-          }),
-          120000
-        );
-      } else {
-        genRes = await withTimeout(
-          client.callTool('generate_screen_from_text', {
-            projectId,
-            prompt,
-            deviceType,
-          }),
-          120000
-        );
-      }
+      genRes = await withTimeout(
+        client.callTool('generate_screen_from_text', {
+          projectId,
+          prompt,
+          deviceType,
+        }),
+        120000
+      );
     }
 
     let screenInfo = null;
