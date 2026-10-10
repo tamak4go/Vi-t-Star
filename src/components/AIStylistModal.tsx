@@ -69,6 +69,8 @@ interface StitchScreenResult {
   title: string;
   screenshotUrl?: string;
   htmlCode?: string;
+  promptText?: string;
+  isHeritageFallback?: boolean;
 }
 
 export function AIStylistModal({
@@ -179,7 +181,8 @@ export function AIStylistModal({
     [equippedOutfit, colorState]
   );
 
-  // Quét thẩm định di sản động dựa trên prompt và màu sắc thực tế từ pixel ảnh (Không bịa đặt)
+  // Quét thẩm định di sản động dựa trên dữ liệu tác phẩm và màu sắc thực tế từ pixel ảnh (Không bịa đặt)
+  // CHỈ THỰC HIỆN KHI NGƯỜI DÙNG CHỦ ĐỘNG YÊU CẦU SAU KHI CÓ POSTER — TUYỆT ĐỐI KHÔNG AUTO
   const executePosterScan = useCallback(
     async (screen: StitchScreenResult | null) => {
       if (!screen || !screen.screenshotUrl) {
@@ -192,35 +195,31 @@ export function AIStylistModal({
         // 1. Trích xuất màu sắc pixel thực tế từ ảnh Canvas (không bịa màu)
         const extractedColors = await extractDominantColorsFromImage(screen.screenshotUrl, 5);
 
-        // 2. Quét thẩm định di sản động
+        // 2. Dùng đúng đặc tả của chính tác phẩm poster này (không lấy nhầm prompt đang gõ dở ở cột trái)
+        const effectivePrompt = screen.promptText || screen.title || "";
+
+        // 3. Quét thẩm định di sản động dựa trên tác phẩm thực tế
         const analysis = scanPosterCulturally({
           posterId: screen.id,
           posterTitle: screen.title,
-          promptText: customPrompt || screen.title,
-          customUserInput: customOutfitInput,
+          promptText: effectivePrompt,
+          customUserInput: screen.promptText ? "" : customOutfitInput,
           selectedOccasionId,
           selectedBackgroundId,
           extractedColors,
         });
 
         setDynamicPosterAnalysis(analysis);
+        showToast("✨ Đã hoàn tất thẩm định di sản cho tác phẩm poster!");
       } catch (err) {
         console.error("[executePosterScan] Lỗi quét di sản poster:", err);
+        showToast("⚠️ Có lỗi khi quét thẩm định di sản poster.");
       } finally {
         setIsScanningPoster(false);
       }
     },
-    [customPrompt, customOutfitInput, selectedOccasionId, selectedBackgroundId]
+    [customOutfitInput, selectedOccasionId, selectedBackgroundId, showToast]
   );
-
-  // Tự động quét khi có ảnh poster mới hoặc khi chọn poster khác trong bộ sưu tập
-  useEffect(() => {
-    if (generatedScreen) {
-      executePosterScan(generatedScreen);
-    } else {
-      setDynamicPosterAnalysis(null);
-    }
-  }, [generatedScreen, executePosterScan]);
 
   // Giai đoạn xử lý thích ứng theo tiến trình Google Cloud (~40-60s)
   const getGenerationStage = (sec: number) => {
@@ -344,7 +343,8 @@ export function AIStylistModal({
       if (data.success && Array.isArray(data.screens)) {
         const valid = data.screens.filter((s: any) => s.screenshotUrl);
         setRecentScreens(valid);
-        setGeneratedScreen((curr) => curr || valid[0] || null);
+        // TUYỆT ĐỐI KHÔNG AUTO CHỌN valid[0]: Người dùng phải bấm kết xuất poster hoặc tự click ảnh trong bộ sưu tập
+        setGeneratedScreen((curr) => curr || null);
       }
     } catch (err) {
       console.error("Lỗi lấy lịch sử screen Stitch:", err);
@@ -460,9 +460,14 @@ export function AIStylistModal({
 
       const data = await res.json();
       if (data.success && data.screen) {
-        setGeneratedScreen(data.screen);
+        const newlyGenerated: StitchScreenResult = {
+          ...data.screen,
+          promptText: customPrompt,
+        };
+        setGeneratedScreen(newlyGenerated);
         setIsFreshlyGenerated(true);
         setFreshGeneratedDescription(desc);
+        setDynamicPosterAnalysis(null); // Tuyệt đối KHÔNG auto thẩm định, để người dùng chủ động kích hoạt
         if (referenceScreenId) {
           showToast("🎉 Đã hoàn tất Poster Lookbook mang đúng khuôn mặt và thần thái của bạn!");
         } else if (data.screen.isHeritageFallback) {
@@ -1609,12 +1614,52 @@ export function AIStylistModal({
                     )}
                   </div>
 
-                  {/* BẢNG THẨM ĐỊNH DI SẢN CỦA POSTER (QUÉT THỰC TẾ) */}
+                  {/* BẢNG THẨM ĐỊNH DI SẢN CỦA POSTER: CHỈ THẨM ĐỊNH KHI CÓ POSTER & USER BẤM, KHÔNG AUTO */}
+                  {generatedScreen && !dynamicPosterAnalysis && (
+                    <div className="p-3 bg-[#fcfaf7] border border-[#e8e2d5] rounded-xl flex items-center justify-between gap-3 shadow-xs">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#b93829] to-[#c59b27] flex items-center justify-center text-white shrink-0 shadow-2xs">
+                          <ShieldCheck className="w-4 h-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-serif font-bold text-xs text-[#1a2a44] truncate flex items-center gap-1.5">
+                            <span>Hồ Sơ Thẩm Định & Quét Di Sản</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+                              Chờ Thẩm Định
+                            </span>
+                          </p>
+                          <p className="text-[10.5px] text-slate-500 truncate">
+                            {isFreshlyGenerated
+                              ? "Poster đã kết xuất xong. Bấm để phân tích di sản thực tế từ ảnh."
+                              : "Khảo sát chuẩn mực y phục và bảng màu thực tế của tác phẩm này."}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => executePosterScan(generatedScreen)}
+                        disabled={isScanningPoster}
+                        className="px-3.5 py-1.5 bg-gradient-to-r from-[#b93829] to-[#c59b27] hover:brightness-110 text-white text-xs font-bold rounded-lg shadow-sm flex items-center gap-1.5 transition-all shrink-0 cursor-pointer disabled:opacity-50"
+                      >
+                        {isScanningPoster ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Đang Quét...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-3.5 h-3.5" /> Thẩm Định Ngay
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
                   {dynamicPosterAnalysis && (
                     <PosterCulturalInspector
                       analysis={dynamicPosterAnalysis}
                       isScanning={isScanningPoster}
                       onScanAgain={() => executePosterScan(generatedScreen)}
+                      onClose={() => setDynamicPosterAnalysis(null)}
                       showToast={showToast}
                     />
                   )}
@@ -1637,6 +1682,7 @@ export function AIStylistModal({
                             onClick={() => {
                               setGeneratedScreen(sc);
                               setIsFreshlyGenerated(false);
+                              setDynamicPosterAnalysis(null);
                             }}
                             className={`w-16 h-20 shrink-0 rounded-xl overflow-hidden border cursor-pointer transition-all bg-slate-900 ${
                               generatedScreen?.id === sc.id

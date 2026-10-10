@@ -14,6 +14,7 @@ import {
   RefreshCw,
   AlertTriangle,
   Download,
+  X,
 } from "lucide-react";
 import {
   type DynamicPosterAnalysis,
@@ -24,6 +25,7 @@ interface PosterCulturalInspectorProps {
   analysis: DynamicPosterAnalysis;
   isScanning: boolean;
   onScanAgain: () => void;
+  onClose?: () => void;
   showToast: (msg: string) => void;
 }
 
@@ -31,6 +33,7 @@ export function PosterCulturalInspector({
   analysis,
   isScanning,
   onScanAgain,
+  onClose,
   showToast,
 }: PosterCulturalInspectorProps) {
   const [activeTab, setActiveTab] = useState<"components" | "colors" | "lore" | "etiquette">("components");
@@ -118,6 +121,17 @@ ${analysis.culturalAdvice.map((a) => `- ${a}`).join("\n")}
           >
             <Download className="w-3.5 h-3.5" />
           </button>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              title="Ẩn hồ sơ thẩm định"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

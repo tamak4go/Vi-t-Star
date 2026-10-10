@@ -325,13 +325,13 @@ export function scanPosterCulturally(params: {
     });
   }
 
-  // 5. Tính toán Điểm Chuẩn Mực Văn Hóa
-  let score = 100;
-  let tier: "authentic" | "remix" | "notice" = "authentic";
-  let badgeTitle = "Di Sản Thuần Khiết (Authentic)";
-  let badgeColorClass = "bg-[#AE3022] text-[#FAF6EE] border border-[#c59b27]";
-  let headline = "Tác Phẩm Chuẩn Mực Bản Sắc Di Sản";
-  let analysisText = `Bức poster đã khắc họa rõ nét tinh thần và phom dáng của ${summaryTitle}. Đường nét đoan trang, tôn kính cội nguồn lịch sử.`;
+  // 5. Tính toán Điểm Chuẩn Mực Văn Hóa Chân Thực (Không tự gán 100/100 khi không đủ căn cứ)
+  let score = 75;
+  let tier: "authentic" | "remix" | "notice" = "remix";
+  let badgeTitle = "Sáng Tạo Đương Đại (Modern Vibe)";
+  let badgeColorClass = "bg-slate-800 text-amber-200 border border-slate-600";
+  let headline = "Phong Cách Thời Trang Tự Do";
+  let analysisText = `Bức poster thể hiện cảm hứng thời trang đương đại. Các chi tiết trang phục mang tính sáng tạo tự do.`;
   const etiquetteTips: string[] = [];
   const conflicts: string[] = [];
 
@@ -344,8 +344,18 @@ export function scanPosterCulturally(params: {
     analysisText = "Hình ảnh có dấu hiệu thiếu quần dài hoặc chân váy truyền thống che chắn cơ thể.";
     conflicts.push("Thiếu hạ y trang nhã theo quy chuẩn cổ truyền.");
     etiquetteTips.push("Cổ phục Việt luôn đi liền với quần lụa dài hoặc váy đụp phủ kín mắt cá chân.");
+  } else if (isAuthentic) {
+    // Có căn cứ cổ phục chuẩn xác
+    const hasFullSet = components.some((c) => c.category === "top") && components.some((c) => c.category === "bottom");
+    score = hasFullSet ? 98 : 90;
+    tier = "authentic";
+    badgeTitle = "Di Sản Thuần Khiết (Authentic)";
+    badgeColorClass = "bg-[#AE3022] text-[#FAF6EE] border border-[#c59b27]";
+    headline = "Tác Phẩm Chuẩn Mực Bản Sắc Di Sản";
+    analysisText = `Bức poster đã khắc họa rõ nét tinh thần và phom dáng của ${summaryTitle}. Đường nét đoan trang, tôn kính cội nguồn lịch sử.`;
+    etiquetteTips.push("Bộ trang phục phù hợp với các nghi lễ trang trọng, kỷ yếu học đường và lễ hội truyền thống.");
   } else if (isRemix || corpus.includes("y2k") || corpus.includes("croptop") || corpus.includes("sneaker")) {
-    score = 92;
+    score = 88;
     tier = "remix";
     badgeTitle = "Gen Z Remix Tinh Tế";
     badgeColorClass = "bg-[#1a2a44] text-[#eed182] border border-[#c59b27]/60";
@@ -353,7 +363,13 @@ export function scanPosterCulturally(params: {
     analysisText = "Tác phẩm thể hiện tinh thần sáng tạo trẻ trung, đưa chất liệu di sản vào nhịp sống hiện đại.";
     etiquetteTips.push("Phong cách phù hợp dạo phố, chụp ảnh lookbook thời trang và tham gia các sự kiện nghệ thuật.");
   } else {
-    etiquetteTips.push("Bộ trang phục phù hợp với các nghi lễ trang trọng, kỷ yếu học đường và lễ hội truyền thống.");
+    score = 78;
+    tier = "remix";
+    badgeTitle = "Phong Cách Đương Đại";
+    badgeColorClass = "bg-[#1a2a44] text-slate-200 border border-slate-600";
+    headline = "Khởi Sắc Đương Đại Sáng Tạo";
+    analysisText = `Tác phẩm thể hiện nét chấm phá lấy cảm hứng cổ phong dưới góc nhìn đương đại.`;
+    etiquetteTips.push("Phù hợp cho các hoạt động sáng tạo nghệ thuật và thời trang thường nhật.");
   }
 
   const authenticity: CulturalAuthenticityAssessment = {

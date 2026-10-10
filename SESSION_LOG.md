@@ -2,7 +2,7 @@
 
 > **Dự án**: VietStar Paper Doll Dressroom (Tủ Đồ Thời Trang Việt Star)  
 > **Workspace**: `c:\Users\ngtam\Downloads\vietstar`  
-> **Trạng thái hiện tại**: Toàn bộ mã nguồn, tài nguyên ảnh ví clutch sạch và tính năng phóng to 150% Tủ Đồ đã được đồng bộ 100% lên GitHub remote repository (`origin/main`). Trạng thái `working tree clean`, `up to date with 'origin/main'`. Build xanh 100% (`tsc -b && vite build`), linter 0 lỗi. Vite dev server chạy ổn định tại `http://127.0.0.1:5173/`. Sẵn sàng nộp bài thẩm định hoàn hảo.
+> **Trạng thái hiện tại**: Đã xử lý triệt để nguyên nhân thẩm định poster bị ảo giác/bịa đặt và xóa bỏ hoàn toàn chế độ auto-scan. Thẩm định poster chỉ khả dụng khi người dùng bấm kết xuất và chủ động yêu cầu thẩm định. Build xanh 100% (`tsc -b && vite build`), linter 0 lỗi. Vite dev server chạy ổn định tại `http://127.0.0.1:5173/`.
 
 ---
 
@@ -10,6 +10,32 @@
 1. **Đọc đầu phiên (Mandatory Pre-read)**: Khi nhận bất kỳ prompt nào từ User, Agent **phải đọc file này trước tiên** để nắm vững toàn bộ lịch sử, trạng thái hiện tại và các quyết định kỹ thuật.
 2. **Cập nhật cuối phiên (Mandatory Post-update)**: Trước khi kết thúc mỗi lượt trả lời, Agent **phải tự động cập nhật lại file này** (ghi nhận công việc vừa thực hiện, cập nhật timeline và trạng thái mới nhất).
 3. **Cơ chế Permission**: Agent được auto-allow mọi lệnh terminal, sửa file, test, script... **NGOẠI TRỪ DUY NHẤT: CẤM TỰ ĐỘNG BẤM PROCEED PLAN** (khi lập plan bắt buộc phải dừng lại chờ User duyệt trong chat).
+
+### ⏱️ Phiên 2026-10-10 08:03 | Xử Lý Triệt Để Lỗi Thẩm Định Bị Bịa Đặt & Xóa Bỏ Hoàn Toàn Chế Độ Auto-Scan Poster - Build Pass 100%
+- **Yêu cầu của User**: "tại sao thẩm định lại bịa ? ngoài ra phải gen ra rồi mới được thẩm định, 0 được phép để auto".
+- **Phân tích nguyên nhân gốc rễ (Root Cause Analysis - Rule 0)**:
+  1. *Tại sao thẩm định lại bịa*:
+     - Trước đây, hàm `executePosterScan` lấy nhầm `customPrompt` đang soạn ở cột trái (vốn đang tự động đồng bộ theo mannequin hoặc preset y phục, ví dụ "Áo Tứ Thân & Yếm Đào") thay vì prompt của chính tác phẩm poster.
+     - Hàm `scanPosterCulturally` nhận diện qua regex text. Khi `corpus` chứa chữ "yếm", nó tự động suy diễn ra "Áo Tứ Thân & Yếm Đào" và "Váy Đụp Đen" kèm điểm 100/100, trong khi ảnh hiển thị trên màn hình lại là ảnh khác (hoặc ảnh trống/ảnh chỉ có đôi hài), gây ra sự sai lệch và ảo giác hoàn toàn ("bịa").
+  2. *Tại sao lại tự động chạy (Auto)*:
+     - Khi mở modal Stitch, `fetchRecentScreens` tự động gán `valid[0]` vào `generatedScreen`.
+     - Đồng thời, một `useEffect` theo dõi `generatedScreen` tự động kích hoạt `executePosterScan` ngầm ngay lập tức dù người dùng chưa hề bấm nút "KẾT XUẤT POSTER".
+- **Giải pháp & Khắc phục triệt để (Ponytail Senior Architecture)**:
+  1. **Xóa bỏ 100% chế độ Auto-Scan & Auto-Select**:
+     - Xóa bỏ việc tự động gán `valid[0]` vào `generatedScreen` khi tải màn hình. Khi mở modal, khung poster giữ nguyên trạng thái Empty State sạch sẽ.
+     - Xóa bỏ hoàn toàn `useEffect` tự động quét ngầm `executePosterScan` khi thay đổi `generatedScreen`.
+     - Khi người dùng click xem một ảnh bất kỳ trong bộ sưu tập: reset `dynamicPosterAnalysis` về `null`, tuyệt đối không tự động nhảy ra kết quả thẩm định.
+  2. **Chỉ thẩm định khi ĐÃ CÓ POSTER và NGƯỜI DÙNG CHỦ ĐỘNG YÊU CẦU**:
+     - Khi người dùng bấm **"KẾT XUẤT POSTER HAUTE COUTURE NGAY"** và Google Stitch tạo thành công: Gắn đúng `promptText` của tác phẩm vào `StitchScreenResult`.
+     - Dưới khung poster hiển thị nút hành động rõ ràng: **"🔍 Hồ Sơ Thẩm Định & Quét Di Sản Poster"** kèm nút **"Thẩm Định Ngay"** (Chỉ thẩm định sau khi người dùng chủ động bấm).
+     - Người dùng có thể ẩn/đóng bảng thẩm định bất kỳ lúc nào qua nút đóng `X` mới được bổ sung trên Header của `PosterCulturalInspector`.
+  3. **Độ chính xác & Triệt tiêu ảo giác (Zero Hallucination)**:
+     - `executePosterScan` lấy chính xác `screen.promptText || screen.title` của tác phẩm cụ thể đó, kết hợp trích xuất màu pixel thực tế từ Canvas 2D.
+     - Trong `posterAnalysisService.ts`: Nếu trang phục không có căn cứ cổ phục rõ ràng, trả về điểm số và xếp loại trung thực ("Sáng Tạo Đương Đại", 75-78 điểm), không tự ý gán 100/100 hay bịa ra các thành phần dân gian cố định.
+- **Kiểm thử thực tế (Mandatory Verification - Rule 0)**:
+  - `npm run build` (`tsc -b && vite build`): **PASS 100% (exit code 0)** trong 2.16s (1911 modules transformed, 0 error).
+  - `npx oxlint -D error`: **PASS 0 ERROR (exit code 0)**.
+- **Tuân thủ Rule 8**: Tuyệt đối không tự ý mở trình duyệt hay chụp màn hình. Báo cáo rõ ràng nguyên nhân và trạng thái cho người dùng tự kiểm tra trên trình duyệt cá nhân.
 
 ### ⏱️ Phiên 2026-10-09 22:22 | Đẩy Mã Nguồn Lên GitHub (Git Push) - Đồng Bộ Hoàn Hảo Remote origin/main
 - **Yêu cầu của User**: "púsh".
